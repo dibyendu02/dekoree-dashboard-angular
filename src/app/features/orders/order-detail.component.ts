@@ -1,12 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { TitleCasePipe } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatButtonModule } from '@angular/material/button';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { StatusBadgeComponent } from '../../shared/components/status-badge/status-badge.component';
 import { CurrencyInrPipe } from '../../shared/pipes/currency-inr.pipe';
 import { RelativeTimePipe } from '../../shared/pipes/relative-time.pipe';
@@ -19,23 +13,19 @@ import { Order, OrderStatus, ShipmentRequest } from '../../core/models';
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatDialogModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatButtonModule,
-    MatProgressSpinnerModule,
     TitleCasePipe,
     StatusBadgeComponent,
     CurrencyInrPipe,
     RelativeTimePipe,
   ],
   template: `
-    <h2 mat-dialog-title class="!text-lg !font-semibold" style="color: var(--color-text)">
-      Order #{{ order.orderNumber ?? order._id.slice(-6) }}
-    </h2>
+    <div class="px-6 pt-6 pb-2">
+      <h2 class="text-lg font-semibold" style="color: var(--color-text)">
+        Order #{{ order.orderNumber ?? order._id.slice(-6) }}
+      </h2>
+    </div>
 
-    <mat-dialog-content class="!max-h-[70vh]">
+    <div class="px-6 py-2 overflow-y-auto" style="max-height: 70vh">
       <!-- Status & Basic Info -->
       <div class="flex items-center gap-3 mb-6">
         <app-status-badge [status]="order.status ?? 'pending'" />
@@ -119,17 +109,21 @@ import { Order, OrderStatus, ShipmentRequest } from '../../core/models';
         <div class="card p-4 mb-4">
           <h4 class="text-sm font-semibold mb-3" style="color: var(--color-text)">Update Status</h4>
           <div class="flex gap-3">
-            <mat-form-field appearance="outline" class="flex-1">
-              <mat-label>New Status</mat-label>
-              <mat-select [(value)]="newStatus">
+            <div class="form-field flex-1">
+              <label>New Status</label>
+              <select [(value)]="newStatus" (change)="newStatus = $any($event.target).value">
                 @for (s of statuses; track s) {
-                  <mat-option [value]="s">{{ s.replace('_', ' ') | titlecase }}</mat-option>
+                  <option [value]="s" [selected]="s === newStatus">{{ formatStatus(s) | titlecase }}</option>
                 }
-              </mat-select>
-            </mat-form-field>
-            <button mat-flat-button color="primary" [disabled]="updating()" (click)="updateStatus()" class="!h-14">
+              </select>
+            </div>
+            <button
+              class="btn btn-primary self-end h-[42px]"
+              [disabled]="updating()"
+              (click)="updateStatus()"
+            >
               @if (updating()) {
-                <mat-spinner diameter="18"></mat-spinner>
+                <span class="spinner w-4 h-4 border-white/30 border-t-white"></span>
               } @else {
                 Update
               }
@@ -143,50 +137,48 @@ import { Order, OrderStatus, ShipmentRequest } from '../../core/models';
         <div class="card p-4">
           <h4 class="text-sm font-semibold mb-3" style="color: var(--color-text)">Create Shipment</h4>
           <form [formGroup]="shipmentForm" class="grid grid-cols-2 gap-3">
-            <mat-form-field appearance="outline">
-              <mat-label>Length (cm)</mat-label>
-              <input matInput type="number" formControlName="length" />
-            </mat-form-field>
-            <mat-form-field appearance="outline">
-              <mat-label>Width (cm)</mat-label>
-              <input matInput type="number" formControlName="width" />
-            </mat-form-field>
-            <mat-form-field appearance="outline">
-              <mat-label>Height (cm)</mat-label>
-              <input matInput type="number" formControlName="height" />
-            </mat-form-field>
-            <mat-form-field appearance="outline">
-              <mat-label>Weight (g)</mat-label>
-              <input matInput type="number" formControlName="weight" />
-            </mat-form-field>
+            <div class="form-field">
+              <label>Length (cm)</label>
+              <input type="number" formControlName="length" />
+            </div>
+            <div class="form-field">
+              <label>Width (cm)</label>
+              <input type="number" formControlName="width" />
+            </div>
+            <div class="form-field">
+              <label>Height (cm)</label>
+              <input type="number" formControlName="height" />
+            </div>
+            <div class="form-field">
+              <label>Weight (g)</label>
+              <input type="number" formControlName="weight" />
+            </div>
           </form>
           <button
-            mat-flat-button
-            color="primary"
+            class="btn btn-primary mt-3"
             [disabled]="creatingShipment() || shipmentForm.invalid"
             (click)="createShipment()"
-            class="mt-2"
           >
             @if (creatingShipment()) {
-              <mat-spinner diameter="18" class="inline-block mr-2"></mat-spinner>
+              <span class="spinner w-4 h-4 border-white/30 border-t-white mr-1"></span>
             }
             Create Shipment
           </button>
         </div>
       }
-    </mat-dialog-content>
+    </div>
 
-    <mat-dialog-actions align="end" class="!pb-4 !pr-6">
-      <button mat-button (click)="dialogRef.close(changed())">Close</button>
-    </mat-dialog-actions>
+    <div class="flex justify-end px-6 pb-5 pt-3">
+      <button class="btn btn-ghost" (click)="dialogRef.close(changed())">Close</button>
+    </div>
   `,
 })
 export class OrderDetailComponent {
   private readonly fb = inject(FormBuilder);
   private readonly orderService = inject(OrderService);
   private readonly toast = inject(ToastService);
-  readonly dialogRef = inject(MatDialogRef<OrderDetailComponent>);
-  private readonly data = inject<{ order: Order }>(MAT_DIALOG_DATA);
+  readonly dialogRef = inject<{ close: (v: unknown) => void }>('DIALOG_REF' as never);
+  private readonly data = inject<{ order: Order }>('DIALOG_DATA' as never);
 
   readonly order = this.data.order;
   readonly updating = signal(false);
@@ -209,6 +201,10 @@ export class OrderDetailComponent {
 
   get userObj() {
     return this.order.user as import('../../core/models').User;
+  }
+
+  formatStatus(s: string): string {
+    return s.replace(/_/g, ' ');
   }
 
   updateStatus(): void {

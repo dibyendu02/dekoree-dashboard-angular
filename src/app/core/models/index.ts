@@ -60,9 +60,12 @@ export interface Product {
   _id: string;
   name: string;
   description?: string;
+  shortDescription?: string;
+  longDescription?: string;
   sku?: string;
   category?: string | Category;
   price: number;
+  mrp?: number;
   originalPrice?: number;
   discountPercentage?: number;
   images?: string[];
@@ -74,6 +77,9 @@ export interface Product {
   isTrending?: boolean;
   codAvailable?: boolean;
   weight?: number;
+  length?: number;
+  width?: number;
+  height?: number;
   dimensions?: { length?: number; width?: number; height?: number };
   productType?: string;
   plantType?: string;
@@ -159,6 +165,8 @@ export interface Coupon {
   discountValue: number;
   maxDiscount?: number;
   minOrderAmount?: number;
+  maxUses?: number;
+  expiryDate?: string;
   startDate?: string;
   endDate?: string;
   usageLimit?: number;
@@ -180,13 +188,15 @@ export interface Coupon {
 // ─── Banner ───────────────────────────────────────────────────
 export interface Banner {
   _id: string;
+  title?: string;
   image?: string;
   mobileImage?: string;
   type?: 'promotional' | 'informational' | 'seasonal' | 'category' | 'product';
-  position?: 'hero' | 'category' | 'product' | 'footer' | 'popup' | 'sidebar';
+  position?: string;
   description?: string;
   link?: string;
   buttonText?: string;
+  sortOrder?: number;
   isActive?: boolean;
   deviceTarget?: 'desktop' | 'mobile' | 'tablet' | 'all';
   targetAudience?: 'all' | 'new' | 'returning' | 'premium';

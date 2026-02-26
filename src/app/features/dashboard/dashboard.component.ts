@@ -1,7 +1,5 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { DecimalPipe, DatePipe } from '@angular/common';
-import { MatButtonModule } from '@angular/material/button';
-import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { BaseChartDirective } from 'ng2-charts';
 import { ChartConfiguration, ChartData } from 'chart.js';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
@@ -20,8 +18,6 @@ import { DashboardStats, Order, User, Product } from '../../core/models';
   imports: [
     DecimalPipe,
     DatePipe,
-    MatButtonModule,
-    MatButtonToggleModule,
     BaseChartDirective,
     PageHeaderComponent,
     StatCardComponent,
@@ -32,15 +28,16 @@ import { DashboardStats, Order, User, Product } from '../../core/models';
   ],
   template: `
     <app-page-header title="Dashboard" subtitle="Overview of your store performance">
-      <mat-button-toggle-group
-        [value]="dateRange()"
-        (change)="onDateRangeChange($event.value)"
-        class="!h-9"
-      >
-        <mat-button-toggle value="7">7 Days</mat-button-toggle>
-        <mat-button-toggle value="30">30 Days</mat-button-toggle>
-        <mat-button-toggle value="90">90 Days</mat-button-toggle>
-      </mat-button-toggle-group>
+      <div class="btn-toggle-group">
+        @for (opt of dateOptions; track opt.value) {
+          <button
+            [class.active]="dateRange() === opt.value"
+            (click)="onDateRangeChange(opt.value)"
+          >
+            {{ opt.label }}
+          </button>
+        }
+      </div>
     </app-page-header>
 
     @if (loading()) {
@@ -224,6 +221,12 @@ export class DashboardComponent implements OnInit {
   readonly recentOrders = signal<Order[]>([]);
   readonly topProducts = signal<Product[]>([]);
 
+  readonly dateOptions = [
+    { value: '7', label: '7 Days' },
+    { value: '30', label: '30 Days' },
+    { value: '90', label: '90 Days' },
+  ];
+
   // Chart configurations
   revenueChartData: ChartData<'line'> = {
     labels: [],
@@ -297,7 +300,6 @@ export class DashboardComponent implements OnInit {
   }
 
   private updateCharts(data: DashboardStats): void {
-    // Generate sample date labels for the revenue chart
     const days = parseInt(this.dateRange());
     const labels: string[] = [];
     for (let i = days - 1; i >= 0; i--) {

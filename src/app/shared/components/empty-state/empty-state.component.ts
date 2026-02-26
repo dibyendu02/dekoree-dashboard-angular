@@ -1,10 +1,8 @@
 import { Component, input, output } from '@angular/core';
-import { MatButtonModule } from '@angular/material/button';
 
 @Component({
   selector: 'app-empty-state',
   standalone: true,
-  imports: [MatButtonModule],
   template: `
     <div class="flex flex-col items-center justify-center py-16 px-4">
       <span
@@ -20,7 +18,7 @@ import { MatButtonModule } from '@angular/material/button';
         {{ message() }}
       </p>
       @if (actionText()) {
-        <button mat-flat-button color="primary" (click)="action.emit()">
+        <button class="btn btn-primary" (click)="action.emit()">
           {{ actionText() }}
         </button>
       }

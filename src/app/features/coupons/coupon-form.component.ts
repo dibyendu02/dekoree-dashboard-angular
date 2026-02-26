@@ -1,14 +1,5 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatButtonModule } from '@angular/material/button';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
-import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CouponService } from '../../core/services/coupon.service';
 import { ToastService } from '../../core/services/toast.service';
 import { Coupon } from '../../core/models';
@@ -16,159 +7,160 @@ import { Coupon } from '../../core/models';
 @Component({
   selector: 'app-coupon-form',
   standalone: true,
-  imports: [
-    ReactiveFormsModule, MatDialogModule, MatFormFieldModule, MatInputModule,
-    MatSelectModule, MatButtonModule, MatDatepickerModule, MatNativeDateModule,
-    MatCheckboxModule, MatProgressSpinnerModule,
-  ],
+  imports: [ReactiveFormsModule],
   template: `
-    <h2 mat-dialog-title class="!text-lg !font-semibold" style="color: var(--color-text)">
-      {{ isEdit ? 'Edit Coupon' : 'Create Coupon' }}
-    </h2>
-    <mat-dialog-content class="!max-h-[70vh]">
-      <form [formGroup]="form" class="space-y-4">
-        <div class="grid grid-cols-2 gap-4">
-          <mat-form-field appearance="outline">
-            <mat-label>Coupon Code</mat-label>
-            <input matInput formControlName="code" style="text-transform: uppercase" />
-            <mat-error>Code is required</mat-error>
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>Discount Type</mat-label>
-            <mat-select formControlName="discountType">
-              <mat-option value="percentage">Percentage</mat-option>
-              <mat-option value="fixed">Fixed Amount</mat-option>
-            </mat-select>
-          </mat-form-field>
+    <div class="px-6 pt-6 pb-2">
+      <h2 class="text-lg font-semibold" style="color: var(--color-text)">
+        {{ isEdit ? 'Edit Coupon' : 'Create Coupon' }}
+      </h2>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="px-6 py-3 overflow-y-auto" style="max-height: 70vh">
+      <div class="grid grid-cols-2 gap-4">
+        <div class="form-field col-span-2">
+          <label for="code">Coupon Code</label>
+          <input id="code" formControlName="code" placeholder="e.g. SAVE20" style="text-transform: uppercase" />
+          @if (form.get('code')?.hasError('required') && form.get('code')?.touched) {
+            <span class="form-error">Code is required</span>
+          }
         </div>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Description</mat-label>
-          <textarea matInput formControlName="description" rows="2"></textarea>
-          <mat-error>Description is required</mat-error>
-        </mat-form-field>
-
-        <div class="grid grid-cols-3 gap-4">
-          <mat-form-field appearance="outline">
-            <mat-label>Discount Value</mat-label>
-            <input matInput type="number" formControlName="discountValue" />
-            <mat-error>Must be greater than 0</mat-error>
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>Max Discount (₹)</mat-label>
-            <input matInput type="number" formControlName="maxDiscount" />
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>Min Order (₹)</mat-label>
-            <input matInput type="number" formControlName="minOrderAmount" />
-          </mat-form-field>
+        <div class="form-field">
+          <label for="discountType">Discount Type</label>
+          <select id="discountType" formControlName="discountType">
+            <option value="percentage">Percentage</option>
+            <option value="fixed">Fixed Amount</option>
+          </select>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
-          <mat-form-field appearance="outline">
-            <mat-label>Start Date</mat-label>
-            <input matInput [matDatepicker]="startPicker" formControlName="startDate" />
-            <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
-            <mat-datepicker #startPicker></mat-datepicker>
-            <mat-error>Start date is required</mat-error>
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>End Date</mat-label>
-            <input matInput [matDatepicker]="endPicker" formControlName="endDate" />
-            <mat-datepicker-toggle matIconSuffix [for]="endPicker"></mat-datepicker-toggle>
-            <mat-datepicker #endPicker></mat-datepicker>
-            <mat-error>End date is required</mat-error>
-          </mat-form-field>
+        <div class="form-field">
+          <label for="discountValue">Discount Value</label>
+          <input id="discountValue" type="number" formControlName="discountValue" />
+          @if (form.get('discountValue')?.hasError('required') && form.get('discountValue')?.touched) {
+            <span class="form-error">Value is required</span>
+          }
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
-          <mat-form-field appearance="outline">
-            <mat-label>Usage Limit</mat-label>
-            <input matInput type="number" formControlName="usageLimit" />
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>Per User Limit</mat-label>
-            <input matInput type="number" formControlName="usageLimitPerUser" />
-          </mat-form-field>
+        <div class="form-field">
+          <label for="minOrderAmount">Min. Order Amount (₹)</label>
+          <input id="minOrderAmount" type="number" formControlName="minOrderAmount" />
         </div>
 
-        <div class="flex gap-6 py-2">
-          <mat-checkbox formControlName="isPublic">Public Coupon</mat-checkbox>
-          <mat-checkbox formControlName="isActive">Active</mat-checkbox>
+        <div class="form-field">
+          <label for="maxDiscount">Max Discount (₹)</label>
+          <input id="maxDiscount" type="number" formControlName="maxDiscount" />
         </div>
-      </form>
-    </mat-dialog-content>
-    <mat-dialog-actions align="end" class="!gap-2 !pb-4 !pr-6">
-      <button mat-button (click)="dialogRef.close()">Cancel</button>
-      <button mat-flat-button color="primary" [disabled]="submitting()" (click)="onSubmit()">
-        @if (submitting()) { <mat-spinner diameter="18" class="inline-block mr-2"></mat-spinner> }
+
+        <div class="form-field">
+          <label for="maxUses">Max Uses</label>
+          <input id="maxUses" type="number" formControlName="maxUses" />
+        </div>
+
+        <div class="form-field">
+          <label for="expiryDate">Expiry Date</label>
+          <input id="expiryDate" type="date" formControlName="expiryDate" />
+          @if (form.get('expiryDate')?.hasError('required') && form.get('expiryDate')?.touched) {
+            <span class="form-error">Expiry date is required</span>
+          }
+        </div>
+
+        <div class="form-field col-span-2">
+          <label for="description">Description</label>
+          <textarea id="description" formControlName="description" rows="2" placeholder="Optional description..."></textarea>
+        </div>
+
+        <div class="col-span-2">
+          <label class="custom-checkbox">
+            <input type="checkbox" formControlName="isActive" />
+            <span>Active</span>
+          </label>
+        </div>
+      </div>
+    </form>
+
+    <div class="flex justify-end gap-2 px-6 pb-5 pt-3">
+      <button type="button" class="btn btn-ghost" (click)="dialogRef.close(null)">Cancel</button>
+      <button
+        type="button"
+        class="btn btn-primary"
+        [disabled]="saving() || form.invalid"
+        (click)="onSubmit()"
+      >
+        @if (saving()) {
+          <span class="spinner w-4 h-4 border-white/30 border-t-white mr-1"></span>
+        }
         {{ isEdit ? 'Update' : 'Create' }}
       </button>
-    </mat-dialog-actions>
+    </div>
   `,
 })
 export class CouponFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly couponService = inject(CouponService);
   private readonly toast = inject(ToastService);
-  readonly dialogRef = inject(MatDialogRef<CouponFormComponent>);
-  private readonly dialogData = inject<{ coupon?: Coupon }>(MAT_DIALOG_DATA);
+  readonly dialogRef = inject<{ close: (v: unknown) => void }>('DIALOG_REF' as never);
+  private readonly data = inject<{ coupon?: Coupon } | null>('DIALOG_DATA' as never);
 
-  readonly submitting = signal(false);
-  get isEdit(): boolean { return !!this.dialogData?.coupon; }
+  readonly saving = signal(false);
+  readonly isEdit: boolean;
+  private readonly editId: string;
 
-  readonly form = this.fb.group({
+  readonly form = this.fb.nonNullable.group({
     code: ['', Validators.required],
-    description: ['', Validators.required],
     discountType: ['percentage' as 'percentage' | 'fixed'],
     discountValue: [0, [Validators.required, Validators.min(1)]],
-    maxDiscount: [null as number | null],
     minOrderAmount: [0],
-    startDate: [null as Date | null, Validators.required],
-    endDate: [null as Date | null, Validators.required],
-    usageLimit: [null as number | null],
-    usageLimitPerUser: [1],
-    isPublic: [true],
+    maxDiscount: [0],
+    maxUses: [0],
+    expiryDate: ['', Validators.required],
+    description: [''],
     isActive: [true],
   });
 
+  constructor() {
+    const coupon = this.data?.coupon;
+    this.isEdit = !!coupon;
+    this.editId = coupon?._id ?? '';
+  }
+
   ngOnInit(): void {
-    if (this.dialogData?.coupon) {
-      const c = this.dialogData.coupon;
+    const coupon = this.data?.coupon;
+    if (coupon) {
       this.form.patchValue({
-        ...c,
-        startDate: c.startDate ? new Date(c.startDate) : null,
-        endDate: c.endDate ? new Date(c.endDate) : null,
+        code: coupon.code,
+        discountType: coupon.discountType,
+        discountValue: coupon.discountValue,
+        minOrderAmount: coupon.minOrderAmount ?? 0,
+        maxDiscount: coupon.maxDiscount ?? 0,
+        maxUses: coupon.maxUses ?? 0,
+        expiryDate: coupon.expiryDate ? new Date(coupon.expiryDate).toISOString().split('T')[0] : '',
+        description: coupon.description ?? '',
+        isActive: coupon.isActive ?? true,
       });
     }
   }
 
   onSubmit(): void {
-    if (this.form.invalid) { this.form.markAllAsTouched(); return; }
-    this.submitting.set(true);
-    const values = this.form.getRawValue();
-    const payload = {
-      code: values.code ?? '',
-      description: values.description ?? '',
-      discountType: values.discountType ?? 'percentage',
-      discountValue: values.discountValue ?? 0,
-      minOrderAmount: values.minOrderAmount ?? 0,
-      usageLimitPerUser: values.usageLimitPerUser ?? 1,
-      isPublic: values.isPublic ?? true,
-      isActive: values.isActive ?? true,
-      startDate: values.startDate?.toISOString(),
-      endDate: values.endDate?.toISOString(),
-      maxDiscount: values.maxDiscount ?? undefined,
-      usageLimit: values.usageLimit ?? undefined,
-    } as Partial<Coupon>;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+    this.saving.set(true);
+    const value = this.form.getRawValue();
 
-    const request = this.isEdit
-      ? this.couponService.updateCoupon(this.dialogData.coupon!._id, payload)
-      : this.couponService.createCoupon(payload);
+    const obs$ = this.isEdit
+      ? this.couponService.updateCoupon(this.editId, value)
+      : this.couponService.createCoupon(value);
 
-    request.subscribe({
-      next: () => { this.toast.success(`Coupon ${this.isEdit ? 'updated' : 'created'}`); this.dialogRef.close(true); },
-      error: () => { this.toast.error(`Failed to ${this.isEdit ? 'update' : 'create'} coupon`); this.submitting.set(false); },
+    obs$.subscribe({
+      next: () => {
+        this.toast.success(this.isEdit ? 'Coupon updated' : 'Coupon created');
+        this.dialogRef.close(true);
+      },
+      error: () => {
+        this.toast.error('Failed to save coupon');
+        this.saving.set(false);
+      },
     });
   }
 }

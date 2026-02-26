@@ -12,10 +12,10 @@ import { ToastService } from '../../../core/services/toast.service';
         <div
           class="flex items-start gap-3 px-4 py-3 rounded-lg shadow-lg border animate-slide-in min-w-[320px]"
           [ngClass]="{
-            'bg-green-50 border-green-200 text-green-800 dark:bg-green-900/30 dark:border-green-800 dark:text-green-300': toast.type === 'success',
-            'bg-red-50 border-red-200 text-red-800 dark:bg-red-900/30 dark:border-red-800 dark:text-red-300': toast.type === 'error',
-            'bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-900/30 dark:border-amber-800 dark:text-amber-300': toast.type === 'warning',
-            'bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-300': toast.type === 'info'
+            'bg-green-50 border-green-300 text-green-900 dark:bg-green-900/30 dark:border-green-800 dark:text-green-300': toast.type === 'success',
+            'bg-red-50 border-red-500 text-red-900 dark:bg-red-900/30 dark:border-red-800 dark:text-red-300': toast.type === 'error',
+            'bg-amber-50 border-amber-300 text-amber-900 dark:bg-amber-900/30 dark:border-amber-800 dark:text-amber-300': toast.type === 'warning',
+            'bg-blue-50 border-blue-300 text-blue-900 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-300': toast.type === 'info'
           }"
         >
           <span class="material-icons text-lg mt-0.5">

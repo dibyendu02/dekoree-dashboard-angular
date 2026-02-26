@@ -1,13 +1,5 @@
-import { Component, inject, OnInit, signal, ViewChild } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
-import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
-import { MatSortModule, MatSort } from '@angular/material/sort';
-import { MatButtonModule } from '@angular/material/button';
-import { MatMenuModule } from '@angular/material/menu';
-import { MatDialogModule, MatDialog } from '@angular/material/dialog';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { MatSelectModule } from '@angular/material/select';
+import { Component, inject, OnInit, signal } from '@angular/core';
+import { TitleCasePipe } from '@angular/common';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { SearchInputComponent } from '../../shared/components/search-input/search-input.component';
 import { StatusBadgeComponent } from '../../shared/components/status-badge/status-badge.component';
@@ -15,9 +7,9 @@ import { SkeletonLoaderComponent } from '../../shared/components/skeleton-loader
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { CurrencyInrPipe } from '../../shared/pipes/currency-inr.pipe';
-import { TruncatePipe } from '../../shared/pipes/truncate.pipe';
 import { ProductService } from '../../core/services/product.service';
 import { ToastService } from '../../core/services/toast.service';
+import { DialogService } from '../../shared/services/dialog.service';
 import { Product } from '../../core/models';
 import { ProductFormComponent } from './product-form.component';
 import { ProductDetailComponent } from './product-detail.component';
@@ -26,69 +18,49 @@ import { ProductDetailComponent } from './product-detail.component';
   selector: 'app-product-list',
   standalone: true,
   imports: [
-    DecimalPipe,
-    MatTableModule,
-    MatPaginatorModule,
-    MatSortModule,
-    MatButtonModule,
-    MatMenuModule,
-    MatDialogModule,
-    MatSlideToggleModule,
-    MatSelectModule,
+    TitleCasePipe,
     PageHeaderComponent,
     SearchInputComponent,
     StatusBadgeComponent,
     SkeletonLoaderComponent,
     EmptyStateComponent,
     CurrencyInrPipe,
-    TruncatePipe,
   ],
   template: `
     <app-page-header title="Products" subtitle="Manage your product catalog">
-      <button mat-flat-button color="primary" (click)="openForm()">
-        <span class="material-icons text-lg mr-1">add</span>
-        Add Product
+      <button class="btn btn-primary" (click)="openForm()">
+        <span class="material-icons text-lg">add</span> Add Product
       </button>
     </app-page-header>
 
     <!-- Filters -->
     <div class="card mb-6">
-      <div class="p-4 flex flex-col sm:flex-row gap-4">
+      <div class="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
         <div class="flex-1">
-          <app-search-input
-            placeholder="Search products..."
-            (searchChange)="onSearch($event)"
-          />
+          <app-search-input placeholder="Search products..." (searchChange)="onSearch($event)" />
         </div>
-        <mat-form-field appearance="outline" class="!w-48">
-          <mat-label>Category</mat-label>
-          <mat-select (selectionChange)="onCategoryFilter($event.value)">
-            <mat-option value="">All Categories</mat-option>
-            @for (cat of categories(); track cat) {
-              <mat-option [value]="cat">{{ cat }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
-        <mat-form-field appearance="outline" class="!w-44">
-          <mat-label>Status</mat-label>
-          <mat-select (selectionChange)="onStatusFilter($event.value)">
-            <mat-option value="">All</mat-option>
-            <mat-option value="active">Active</mat-option>
-            <mat-option value="inactive">Inactive</mat-option>
-            <mat-option value="low-stock">Low Stock</mat-option>
-          </mat-select>
-        </mat-form-field>
+        <select class="filter-select w-40" (change)="onCategoryFilter($any($event.target).value)">
+          <option value="">All Categories</option>
+          @for (cat of categories(); track cat) {
+            <option [value]="cat">{{ cat }}</option>
+          }
+        </select>
+        <select class="filter-select w-36" (change)="onStatusFilter($any($event.target).value)">
+          <option value="">All Status</option>
+          <option value="true">Active</option>
+          <option value="false">Inactive</option>
+        </select>
       </div>
     </div>
 
     @if (loading()) {
       <app-skeleton-loader type="table" [count]="8" />
-    } @else if (dataSource.data.length === 0) {
+    } @else if (filteredProducts().length === 0 && allProducts().length === 0) {
       <div class="card">
         <app-empty-state
           icon="inventory_2"
-          title="No products found"
-          message="Start building your catalog by adding your first product."
+          title="No products yet"
+          message="Start by adding your first product."
           actionText="Add Product"
           (action)="openForm()"
         />
@@ -96,125 +68,146 @@ import { ProductDetailComponent } from './product-detail.component';
     } @else {
       <div class="card overflow-hidden">
         <div class="overflow-x-auto">
-          <table mat-table [dataSource]="dataSource" matSort class="w-full">
-            <!-- Image -->
-            <ng-container matColumnDef="image">
-              <th mat-header-cell *matHeaderCellDef></th>
-              <td mat-cell *matCellDef="let product">
-                @if (product.images?.[0]) {
-                  <img
-                    [src]="product.images[0]"
-                    [alt]="product.name"
-                    class="w-10 h-10 rounded-lg object-cover border"
-                    style="border-color: var(--color-border)"
-                  />
-                } @else {
-                  <div class="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                    <span class="material-icons text-gray-400 text-lg">image</span>
-                  </div>
-                }
-              </td>
-            </ng-container>
-
-            <!-- Name -->
-            <ng-container matColumnDef="name">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
-              <td mat-cell *matCellDef="let product">
-                <span class="font-medium text-sm" style="color: var(--color-text)">
-                  {{ product.name | truncate:40 }}
-                </span>
-              </td>
-            </ng-container>
-
-            <!-- Category -->
-            <ng-container matColumnDef="category">
-              <th mat-header-cell *matHeaderCellDef>Category</th>
-              <td mat-cell *matCellDef="let product">
-                <span class="text-sm" style="color: var(--color-text-secondary)">
-                  {{ getCategoryName(product.category) }}
-                </span>
-              </td>
-            </ng-container>
-
-            <!-- Price -->
-            <ng-container matColumnDef="price">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Price</th>
-              <td mat-cell *matCellDef="let product">
-                <span class="text-sm font-medium" style="color: var(--color-text)">
-                  {{ product.price | currencyInr }}
-                </span>
-                @if (product.originalPrice && product.originalPrice > product.price) {
-                  <span class="text-xs line-through ml-1" style="color: var(--color-text-muted)">
-                    {{ product.originalPrice | currencyInr }}
-                  </span>
-                }
-              </td>
-            </ng-container>
-
-            <!-- Stock -->
-            <ng-container matColumnDef="stock">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Stock</th>
-              <td mat-cell *matCellDef="let product">
-                <span
-                  class="text-sm font-medium"
-                  [class.text-red-500]="(product.stock ?? 0) <= (product.lowStockThreshold ?? 5)"
-                  [style.color]="(product.stock ?? 0) > (product.lowStockThreshold ?? 5) ? 'var(--color-text)' : ''"
-                >
-                  {{ product.stock ?? 0 }}
-                </span>
-                @if ((product.stock ?? 0) <= (product.lowStockThreshold ?? 5)) {
-                  <span class="material-icons text-red-500 text-sm ml-1 align-middle">warning</span>
-                }
-              </td>
-            </ng-container>
-
-            <!-- Status -->
-            <ng-container matColumnDef="status">
-              <th mat-header-cell *matHeaderCellDef>Status</th>
-              <td mat-cell *matCellDef="let product">
-                <mat-slide-toggle
-                  [checked]="product.isActive"
-                  (change)="toggleStatus(product)"
-                  color="primary"
-                ></mat-slide-toggle>
-              </td>
-            </ng-container>
-
-            <!-- Actions -->
-            <ng-container matColumnDef="actions">
-              <th mat-header-cell *matHeaderCellDef></th>
-              <td mat-cell *matCellDef="let product">
-                <button mat-icon-button [matMenuTriggerFor]="actionMenu">
-                  <span class="material-icons">more_vert</span>
-                </button>
-                <mat-menu #actionMenu="matMenu">
-                  <button mat-menu-item (click)="viewProduct(product)">
-                    <span class="material-icons mr-2">visibility</span> View
-                  </button>
-                  <button mat-menu-item (click)="openForm(product)">
-                    <span class="material-icons mr-2">edit</span> Edit
-                  </button>
-                  <button mat-menu-item (click)="duplicateProduct(product)">
-                    <span class="material-icons mr-2">content_copy</span> Duplicate
-                  </button>
-                  <hr style="border-color: var(--color-border)" />
-                  <button mat-menu-item (click)="deleteProduct(product)" class="!text-red-500">
-                    <span class="material-icons mr-2">delete</span> Delete
-                  </button>
-                </mat-menu>
-              </td>
-            </ng-container>
-
-            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns" class="cursor-pointer"></tr>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Image</th>
+                <th class="sortable" (click)="toggleSort('name')"
+                    [class.sort-active]="sortField() === 'name'">
+                  Name
+                  <span class="material-icons sort-icon">{{ getSortIcon('name') }}</span>
+                </th>
+                <th>Category</th>
+                <th class="sortable" (click)="toggleSort('price')"
+                    [class.sort-active]="sortField() === 'price'">
+                  Price
+                  <span class="material-icons sort-icon">{{ getSortIcon('price') }}</span>
+                </th>
+                <th class="sortable" (click)="toggleSort('stock')"
+                    [class.sort-active]="sortField() === 'stock'">
+                  Stock
+                  <span class="material-icons sort-icon">{{ getSortIcon('stock') }}</span>
+                </th>
+                <th>Active</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (product of paginatedProducts(); track product._id) {
+                <tr class="cursor-pointer" (click)="viewProduct(product)">
+                  <td>
+                    @if (product.images?.[0]) {
+                      <img [src]="product.images![0]" [alt]="product.name"
+                           class="w-12 h-12 rounded-lg object-cover border"
+                           style="border-color: var(--color-border)" />
+                    } @else {
+                      <div class="w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                        <span class="material-icons text-gray-400">image</span>
+                      </div>
+                    }
+                  </td>
+                  <td>
+                    <div>
+                      <p class="text-sm font-medium" style="color: var(--color-text)">{{ product.name }}</p>
+                      @if (product.sku) {
+                        <p class="text-xs" style="color: var(--color-text-muted)">SKU: {{ product.sku }}</p>
+                      }
+                    </div>
+                  </td>
+                  <td>
+                    @if (product.category) {
+                      <span class="chip bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                        {{ getCategoryName(product.category) }}
+                      </span>
+                    }
+                  </td>
+                  <td>
+                    <div>
+                      <span class="text-sm font-semibold" style="color: var(--color-text)">
+                        {{ product.price | currencyInr }}
+                      </span>
+                      @if (product.mrp && product.mrp > product.price) {
+                        <span class="text-xs line-through ml-1" style="color: var(--color-text-muted)">
+                          {{ product.mrp | currencyInr }}
+                        </span>
+                      }
+                    </div>
+                  </td>
+                  <td>
+                    <span class="text-sm"
+                      [class.text-red-500]="(product.stock ?? 0) < 5"
+                      [style.color]="(product.stock ?? 0) >= 5 ? 'var(--color-text-secondary)' : ''">
+                      {{ product.stock ?? 0 }}
+                    </span>
+                  </td>
+                  <td (click)="$event.stopPropagation()">
+                    <label class="toggle-switch">
+                      <input type="checkbox"
+                        [checked]="product.isActive !== false"
+                        (change)="toggleActive(product)"
+                      />
+                      <span class="toggle-track"></span>
+                    </label>
+                  </td>
+                  <td (click)="$event.stopPropagation()">
+                    <div class="relative">
+                      <button class="btn-icon" (click)="toggleMenu(product._id)">
+                        <span class="material-icons">more_vert</span>
+                      </button>
+                      @if (openMenuId() === product._id) {
+                        <div class="dropdown-menu">
+                          <button (click)="viewProduct(product); closeMenu()">
+                            <span class="material-icons text-lg">visibility</span> View
+                          </button>
+                          <button (click)="openForm(product); closeMenu()">
+                            <span class="material-icons text-lg">edit</span> Edit
+                          </button>
+                          <hr />
+                          <button class="text-red-500" (click)="deleteProduct(product); closeMenu()">
+                            <span class="material-icons text-lg">delete</span> Delete
+                          </button>
+                        </div>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="7" class="text-center py-8 text-sm" style="color: var(--color-text-muted)">
+                    No matching products
+                  </td>
+                </tr>
+              }
+            </tbody>
           </table>
         </div>
 
-        <mat-paginator
-          [pageSizeOptions]="[10, 25, 50]"
-          [pageSize]="10"
-          showFirstLastButtons
-        ></mat-paginator>
+        <!-- Pagination -->
+        <div class="pagination">
+          <div class="flex items-center gap-3">
+            <span>Rows per page:</span>
+            <select [value]="pageSize()" (change)="pageSize.set(+$any($event.target).value); currentPage.set(0)">
+              <option [value]="10">10</option>
+              <option [value]="25">25</option>
+              <option [value]="50">50</option>
+            </select>
+            <span>{{ paginationLabel() }}</span>
+          </div>
+          <div class="pagination-controls">
+            <button [disabled]="currentPage() === 0" (click)="currentPage.set(0)">
+              <span class="material-icons text-sm">first_page</span>
+            </button>
+            <button [disabled]="currentPage() === 0" (click)="currentPage.update(p => p - 1)">
+              <span class="material-icons text-sm">chevron_left</span>
+            </button>
+            <button [disabled]="currentPage() >= totalPages() - 1" (click)="currentPage.update(p => p + 1)">
+              <span class="material-icons text-sm">chevron_right</span>
+            </button>
+            <button [disabled]="currentPage() >= totalPages() - 1" (click)="currentPage.set(totalPages() - 1)">
+              <span class="material-icons text-sm">last_page</span>
+            </button>
+          </div>
+        </div>
       </div>
     }
   `,
@@ -222,122 +215,113 @@ import { ProductDetailComponent } from './product-detail.component';
 export class ProductListComponent implements OnInit {
   private readonly productService = inject(ProductService);
   private readonly toast = inject(ToastService);
-  private readonly dialog = inject(MatDialog);
+  private readonly dialog = inject(DialogService);
 
   readonly loading = signal(true);
+  readonly allProducts = signal<Product[]>([]);
+  readonly filteredProducts = signal<Product[]>([]);
   readonly categories = signal<string[]>([]);
-  readonly displayedColumns = ['image', 'name', 'category', 'price', 'stock', 'status', 'actions'];
+  readonly searchTerm = signal('');
+  readonly categoryFilter = signal('');
+  readonly statusFilter = signal('');
+  readonly sortField = signal('');
+  readonly sortDirection = signal<'asc' | 'desc'>('asc');
+  readonly currentPage = signal(0);
+  readonly pageSize = signal(10);
+  readonly openMenuId = signal<string | null>(null);
 
-  dataSource = new MatTableDataSource<Product>([]);
+  ngOnInit(): void { this.loadProducts(); }
 
-  @ViewChild(MatPaginator) set paginator(p: MatPaginator) {
-    if (p) this.dataSource.paginator = p;
-  }
-  @ViewChild(MatSort) set sort(s: MatSort) {
-    if (s) this.dataSource.sort = s;
-  }
+  onSearch(term: string): void { this.searchTerm.set(term.trim().toLowerCase()); this.applyFilters(); }
+  onCategoryFilter(cat: string): void { this.categoryFilter.set(cat); this.applyFilters(); }
+  onStatusFilter(val: string): void { this.statusFilter.set(val); this.applyFilters(); }
 
-  ngOnInit(): void {
-    this.loadProducts();
-  }
-
-  onSearch(term: string): void {
-    this.dataSource.filter = term.trim().toLowerCase();
-  }
-
-  onCategoryFilter(category: string): void {
-    if (category) {
-      this.dataSource.filterPredicate = (data) =>
-        this.getCategoryName(data.category).toLowerCase() === category.toLowerCase();
-      this.dataSource.filter = category;
-    } else {
-      this.dataSource.filterPredicate = (data, filter) =>
-        data.name.toLowerCase().includes(filter);
-      this.dataSource.filter = '';
-    }
+  toggleSort(field: string): void {
+    if (this.sortField() === field) this.sortDirection.update(d => d === 'asc' ? 'desc' : 'asc');
+    else { this.sortField.set(field); this.sortDirection.set('asc'); }
+    this.applyFilters();
   }
 
-  onStatusFilter(status: string): void {
-    if (!status) {
-      this.dataSource.filterPredicate = (data, filter) =>
-        data.name.toLowerCase().includes(filter);
-      this.dataSource.filter = '';
-      return;
-    }
-    this.dataSource.filterPredicate = (data) => {
-      if (status === 'active') return data.isActive === true;
-      if (status === 'inactive') return data.isActive === false;
-      if (status === 'low-stock') return (data.stock ?? 0) <= (data.lowStockThreshold ?? 5);
-      return true;
-    };
-    this.dataSource.filter = status;
+  getSortIcon(field: string): string {
+    if (this.sortField() !== field) return 'unfold_more';
+    return this.sortDirection() === 'asc' ? 'arrow_upward' : 'arrow_downward';
   }
 
-  getCategoryName(category: unknown): string {
-    if (!category) return '-';
-    if (typeof category === 'string') return category;
-    return (category as { name?: string }).name ?? '-';
+  toggleMenu(id: string): void { this.openMenuId.set(this.openMenuId() === id ? null : id); }
+  closeMenu(): void { this.openMenuId.set(null); }
+
+  paginatedProducts(): Product[] {
+    const s = this.currentPage() * this.pageSize();
+    return this.filteredProducts().slice(s, s + this.pageSize());
+  }
+  totalPages(): number { return Math.max(1, Math.ceil(this.filteredProducts().length / this.pageSize())); }
+  paginationLabel(): string {
+    const t = this.filteredProducts().length;
+    const s = this.currentPage() * this.pageSize() + 1;
+    const e = Math.min(s + this.pageSize() - 1, t);
+    return t ? `${s}–${e} of ${t}` : '0 of 0';
+  }
+
+  getCategoryName(cat: string | { name?: string }): string {
+    return typeof cat === 'string' ? cat : (cat?.name ?? '-');
   }
 
   openForm(product?: Product): void {
-    const dialogRef = this.dialog.open(ProductFormComponent, {
-      width: '800px',
-      maxHeight: '90vh',
-      data: { product },
-    });
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) this.loadProducts();
-    });
+    const ref = this.dialog.open(ProductFormComponent, { width: '700px', maxHeight: '90vh', data: product ? { product } : null });
+    ref.afterClosed().subscribe(ok => { if (ok) this.loadProducts(); });
   }
 
   viewProduct(product: Product): void {
-    this.dialog.open(ProductDetailComponent, {
-      width: '700px',
-      maxHeight: '90vh',
-      data: { product },
-    });
+    this.dialog.open(ProductDetailComponent, { width: '700px', maxHeight: '90vh', data: { product } });
   }
 
-  toggleStatus(product: Product): void {
-    this.productService.toggleStatus(product._id).subscribe({
-      next: () => {
-        product.isActive = !product.isActive;
-        this.toast.success(`Product ${product.isActive ? 'activated' : 'deactivated'}`);
-      },
-      error: () => this.toast.error('Failed to update product status'),
-    });
-  }
-
-  duplicateProduct(product: Product): void {
-    this.productService.duplicateProduct(product._id).subscribe({
-      next: () => {
-        this.toast.success('Product duplicated');
-        this.loadProducts();
-      },
-      error: () => this.toast.error('Failed to duplicate product'),
+  toggleActive(product: Product): void {
+    const newActive = product.isActive === false;
+    const fd = new FormData();
+    fd.append('isActive', String(newActive));
+    this.productService.updateProduct(product._id, fd).subscribe({
+      next: () => { product.isActive = newActive; this.toast.success(`Product ${newActive ? 'activated' : 'deactivated'}`); },
+      error: () => this.toast.error('Failed to update'),
     });
   }
 
   deleteProduct(product: Product): void {
-    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+    const ref = this.dialog.open(ConfirmDialogComponent, {
       width: '400px',
-      data: {
-        title: 'Delete Product',
-        message: `Are you sure you want to delete "${product.name}"? This action cannot be undone.`,
-        confirmText: 'Delete',
-        confirmColor: 'warn',
-      } satisfies ConfirmDialogData,
+      data: { title: 'Delete Product', message: `Delete "${product.name}"? This cannot be undone.`, confirmText: 'Delete', confirmColor: 'warn' } satisfies ConfirmDialogData,
     });
-    dialogRef.afterClosed().subscribe(confirmed => {
-      if (!confirmed) return;
+    ref.afterClosed().subscribe(ok => {
+      if (!ok) return;
       this.productService.deleteProduct(product._id).subscribe({
-        next: () => {
-          this.toast.success('Product deleted');
-          this.dataSource.data = this.dataSource.data.filter(p => p._id !== product._id);
-        },
+        next: () => { this.toast.success('Product deleted'); this.allProducts.update(p => p.filter(x => x._id !== product._id)); this.applyFilters(); },
         error: () => this.toast.error('Failed to delete product'),
       });
     });
+  }
+
+  private applyFilters(): void {
+    let data = [...this.allProducts()];
+    const search = this.searchTerm();
+    const cat = this.categoryFilter();
+    const status = this.statusFilter();
+
+    if (search) data = data.filter(p => p.name.toLowerCase().includes(search) || (p.sku ?? '').toLowerCase().includes(search));
+    if (cat) data = data.filter(p => this.getCategoryName(p.category as string) === cat);
+    if (status) data = data.filter(p => String(p.isActive !== false) === status);
+
+    const field = this.sortField();
+    if (field) {
+      const dir = this.sortDirection() === 'asc' ? 1 : -1;
+      data.sort((a, b) => {
+        const va = (a as unknown as Record<string, unknown>)[field] ?? '';
+        const vb = (b as unknown as Record<string, unknown>)[field] ?? '';
+        if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir;
+        return String(va).localeCompare(String(vb)) * dir;
+      });
+    }
+
+    this.filteredProducts.set(data);
+    if (this.currentPage() >= this.totalPages()) this.currentPage.set(0);
   }
 
   private loadProducts(): void {
@@ -345,19 +329,14 @@ export class ProductListComponent implements OnInit {
     this.productService.getProducts({ limit: 200 }).subscribe({
       next: (res) => {
         const products = res.data ?? (res as unknown as Product[]);
-        this.dataSource.data = Array.isArray(products) ? products : [];
-        const cats = new Set<string>();
-        this.dataSource.data.forEach(p => {
-          const name = this.getCategoryName(p.category);
-          if (name !== '-') cats.add(name);
-        });
-        this.categories.set(Array.from(cats));
+        const list = Array.isArray(products) ? products : [];
+        this.allProducts.set(list);
+        const cats = [...new Set(list.map(p => this.getCategoryName(p.category as string)).filter(Boolean))];
+        this.categories.set(cats);
+        this.applyFilters();
         this.loading.set(false);
       },
-      error: () => {
-        this.toast.error('Failed to load products');
-        this.loading.set(false);
-      },
+      error: () => { this.toast.error('Failed to load products'); this.loading.set(false); },
     });
   }
 }

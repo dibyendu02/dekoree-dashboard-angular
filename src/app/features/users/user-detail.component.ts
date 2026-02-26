@@ -1,6 +1,4 @@
 import { Component, inject } from '@angular/core';
-import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { MatButtonModule } from '@angular/material/button';
 import { StatusBadgeComponent } from '../../shared/components/status-badge/status-badge.component';
 import { CurrencyInrPipe } from '../../shared/pipes/currency-inr.pipe';
 import { RelativeTimePipe } from '../../shared/pipes/relative-time.pipe';
@@ -9,12 +7,14 @@ import { User } from '../../core/models';
 @Component({
   selector: 'app-user-detail',
   standalone: true,
-  imports: [MatDialogModule, MatButtonModule, StatusBadgeComponent, CurrencyInrPipe, RelativeTimePipe],
+  imports: [StatusBadgeComponent, CurrencyInrPipe, RelativeTimePipe],
   template: `
-    <h2 mat-dialog-title class="!text-lg !font-semibold" style="color: var(--color-text)">
-      User Details
-    </h2>
-    <mat-dialog-content class="!max-h-[70vh]">
+    <div class="px-6 pt-6 pb-2">
+      <h2 class="text-lg font-semibold" style="color: var(--color-text)">
+        User Details
+      </h2>
+    </div>
+    <div class="px-6 py-2 overflow-y-auto" style="max-height: 70vh">
       <div class="flex items-center gap-4 mb-6">
         <div class="w-16 h-16 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center">
           <span class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
@@ -57,14 +57,15 @@ import { User } from '../../core/models';
           </div>
         }
       }
-    </mat-dialog-content>
-    <mat-dialog-actions align="end" class="!pb-4 !pr-6">
-      <button mat-button mat-dialog-close>Close</button>
-    </mat-dialog-actions>
+    </div>
+    <div class="flex justify-end px-6 pb-5 pt-3">
+      <button class="btn btn-ghost" (click)="dialogRef.close()">Close</button>
+    </div>
   `,
 })
 export class UserDetailComponent {
-  private readonly data = inject<{ user: User }>(MAT_DIALOG_DATA);
+  private readonly data = inject<{ user: User }>('DIALOG_DATA' as never);
+  readonly dialogRef = inject<{ close: (v?: unknown) => void }>('DIALOG_REF' as never);
   readonly user = this.data.user;
 
   get infoFields() {

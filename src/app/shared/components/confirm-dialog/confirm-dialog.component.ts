@@ -1,6 +1,4 @@
 import { Component, inject } from '@angular/core';
-import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
-import { MatButtonModule } from '@angular/material/button';
 
 export interface ConfirmDialogData {
   title: string;
@@ -13,31 +11,34 @@ export interface ConfirmDialogData {
 @Component({
   selector: 'app-confirm-dialog',
   standalone: true,
-  imports: [MatDialogModule, MatButtonModule],
+  imports: [],
   template: `
-    <h2 mat-dialog-title class="!text-lg !font-semibold" style="color: var(--color-text)">
-      {{ data.title }}
-    </h2>
-    <mat-dialog-content>
+    <div class="px-6 pt-6 pb-2">
+      <h2 class="text-lg font-semibold" style="color: var(--color-text)">
+        {{ data.title }}
+      </h2>
+    </div>
+    <div class="px-6 py-3">
       <p class="text-sm" style="color: var(--color-text-secondary)">
         {{ data.message }}
       </p>
-    </mat-dialog-content>
-    <mat-dialog-actions align="end" class="!gap-2 !pb-4 !pr-6">
-      <button mat-button (click)="dialogRef.close(false)">
+    </div>
+    <div class="flex justify-end gap-2 px-6 pb-5 pt-3">
+      <button class="btn btn-ghost" (click)="dialogRef.close(false)">
         {{ data.cancelText || 'Cancel' }}
       </button>
       <button
-        mat-flat-button
-        [color]="data.confirmColor || 'warn'"
+        class="btn"
+        [class.btn-primary]="data.confirmColor !== 'warn'"
+        [class.btn-warn]="data.confirmColor === 'warn'"
         (click)="dialogRef.close(true)"
       >
         {{ data.confirmText || 'Confirm' }}
       </button>
-    </mat-dialog-actions>
+    </div>
   `,
 })
 export class ConfirmDialogComponent {
-  readonly data = inject<ConfirmDialogData>(MAT_DIALOG_DATA);
-  readonly dialogRef = inject(MatDialogRef<ConfirmDialogComponent>);
+  readonly data = inject<ConfirmDialogData>('DIALOG_DATA' as never);
+  readonly dialogRef = inject<{ close: (v: boolean) => void }>('DIALOG_REF' as never);
 }

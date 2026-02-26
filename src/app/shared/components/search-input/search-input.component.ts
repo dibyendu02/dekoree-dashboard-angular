@@ -19,12 +19,10 @@ import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
         [placeholder]="placeholder()"
         [(ngModel)]="searchValue"
         (ngModelChange)="onInput($event)"
-        class="w-full pl-10 pr-4 py-2.5 text-sm rounded-lg border transition-colors
-               focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+        class="filter-select w-full !pl-10 !pr-9 !bg-none"
         style="
-          background: var(--color-surface);
-          border-color: var(--color-border);
-          color: var(--color-text);
+          background-color: var(--color-surface);
+          background-image: none;
         "
       />
       @if (searchValue) {

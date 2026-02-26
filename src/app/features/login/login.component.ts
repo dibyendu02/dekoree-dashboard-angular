@@ -1,22 +1,12 @@
 import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../core/auth/auth.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [
-    ReactiveFormsModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatProgressSpinnerModule,
-  ],
+  imports: [ReactiveFormsModule],
   template: `
     <div
       class="min-h-screen flex items-center justify-center p-4"
@@ -39,46 +29,50 @@ import { AuthService } from '../../core/auth/auth.service';
         <!-- Form -->
         <div class="card p-8">
           <form [formGroup]="form" (ngSubmit)="onSubmit()">
-            <mat-form-field appearance="outline" class="w-full mb-2">
-              <mat-label>Email or Phone</mat-label>
-              <input matInput formControlName="identifier" placeholder="admin@dekoree.com" />
-              @if (form.get('identifier')?.hasError('required') && form.get('identifier')?.touched) {
-                <mat-error>Email or phone is required</mat-error>
-              }
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="w-full mb-4">
-              <mat-label>Password</mat-label>
+            <div class="form-field mb-5">
+              <label for="identifier">Email or Phone</label>
               <input
-                matInput
-                formControlName="password"
-                [type]="showPassword() ? 'text' : 'password'"
-                placeholder="Enter your password"
+                id="identifier"
+                formControlName="identifier"
+                placeholder="admin&#64;dekoree.com"
               />
-              <button
-                mat-icon-button
-                matSuffix
-                type="button"
-                (click)="showPassword.update(v => !v)"
-              >
-                <span class="material-icons text-xl" style="color: var(--color-text-muted)">
-                  {{ showPassword() ? 'visibility_off' : 'visibility' }}
-                </span>
-              </button>
-              @if (form.get('password')?.hasError('required') && form.get('password')?.touched) {
-                <mat-error>Password is required</mat-error>
+              @if (form.get('identifier')?.hasError('required') && form.get('identifier')?.touched) {
+                <span class="form-error">Email or phone is required</span>
               }
-            </mat-form-field>
+            </div>
+
+            <div class="form-field mb-6">
+              <label for="password">Password</label>
+              <div class="relative">
+                <input
+                  id="password"
+                  formControlName="password"
+                  [type]="showPassword() ? 'text' : 'password'"
+                  placeholder="Enter your password"
+                />
+                <button
+                  type="button"
+                  class="absolute right-3 top-1/2 -translate-y-1/2"
+                  style="color: var(--color-text-muted)"
+                  (click)="showPassword.update(v => !v)"
+                >
+                  <span class="material-icons text-xl">
+                    {{ showPassword() ? 'visibility_off' : 'visibility' }}
+                  </span>
+                </button>
+              </div>
+              @if (form.get('password')?.hasError('required') && form.get('password')?.touched) {
+                <span class="form-error">Password is required</span>
+              }
+            </div>
 
             <button
-              mat-flat-button
-              color="primary"
               type="submit"
-              class="w-full !h-12 !text-base !rounded-lg"
+              class="btn btn-primary w-full h-12 text-base rounded-lg"
               [disabled]="auth.loading()"
             >
               @if (auth.loading()) {
-                <mat-spinner diameter="20" class="inline-block mr-2"></mat-spinner>
+                <span class="spinner w-5 h-5 border-white/30 border-t-white mr-2"></span>
                 Signing in...
               } @else {
                 Sign in

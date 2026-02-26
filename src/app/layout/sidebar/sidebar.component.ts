@@ -39,10 +39,11 @@ interface NavItem {
               <a
                 [routerLink]="item.route"
                 routerLinkActive="active-link"
-                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
-                       hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                onmouseover="this.style.background='var(--color-surface-hover)'"
+                onmouseout="if(!this.classList.contains('active-link')) this.style.background='transparent'"
                 [ngClass]="{ 'justify-center': collapsed() }"
-                style="color: var(--color-text-secondary)"
+                style="color: var(--color-text-secondary); background: transparent"
                 [title]="collapsed() ? item.label : ''"
               >
                 <span class="material-icons text-xl">{{ item.icon }}</span>
@@ -58,9 +59,10 @@ interface NavItem {
       <!-- Collapse Toggle -->
       <div class="p-3 border-t shrink-0" style="border-color: var(--color-border)">
         <button
-          class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors
-                 hover:bg-gray-100 dark:hover:bg-gray-800"
-          style="color: var(--color-text-muted)"
+          class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors"
+          onmouseover="this.style.background='var(--color-surface-hover)'"
+          onmouseout="this.style.background='transparent'"
+          style="color: var(--color-text-muted); background: transparent"
           (click)="toggleCollapse.emit()"
         >
           <span class="material-icons text-xl">

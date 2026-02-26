@@ -1,13 +1,11 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal, HostListener, ElementRef } from '@angular/core';
 import { AuthService } from '../../core/auth/auth.service';
 import { ThemeService } from '../../core/services/theme.service';
-import { MatMenuModule } from '@angular/material/menu';
-import { MatButtonModule } from '@angular/material/button';
 
 @Component({
   selector: 'app-topbar',
   standalone: true,
-  imports: [MatMenuModule, MatButtonModule],
+  imports: [],
   template: `
     <header
       class="h-16 flex items-center justify-between px-6 border-b sticky top-0 z-20"
@@ -24,9 +22,8 @@ import { MatButtonModule } from '@angular/material/button';
       <div class="flex items-center gap-2">
         <!-- Theme Toggle -->
         <button
-          mat-icon-button
+          class="btn-icon"
           (click)="theme.toggle()"
-          class="!text-gray-500"
           title="Toggle theme"
         >
           <span class="material-icons text-xl">
@@ -35,22 +32,24 @@ import { MatButtonModule } from '@angular/material/button';
         </button>
 
         <!-- Notifications -->
-        <button mat-icon-button class="!text-gray-500" title="Notifications">
+        <button class="btn-icon" title="Notifications">
           <span class="material-icons text-xl">notifications_none</span>
         </button>
 
         <!-- User Menu -->
-        <button
-          mat-button
-          [matMenuTriggerFor]="userMenu"
-          class="!ml-2 !rounded-lg"
-        >
-          <div class="flex items-center gap-2">
+        <div class="relative ml-2">
+          <button
+            class="flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors"
+            style="background: transparent"
+            onmouseover="this.style.background='var(--color-surface-hover)'"
+            onmouseout="this.style.background='transparent'"
+            (click)="menuOpen.set(!menuOpen()); $event.stopPropagation()"
+          >
             <div
-              class="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/40
-                     flex items-center justify-center"
+              class="w-8 h-8 rounded-full flex items-center justify-center"
+              style="background: var(--color-primary-light); opacity: 0.15"
             >
-              <span class="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
+              <span class="text-sm font-semibold" style="color: var(--color-primary)">
                 {{ userInitial }}
               </span>
             </div>
@@ -60,23 +59,26 @@ import { MatButtonModule } from '@angular/material/button';
             <span class="material-icons text-base" style="color: var(--color-text-muted)">
               expand_more
             </span>
-          </div>
-        </button>
-        <mat-menu #userMenu="matMenu" class="!mt-1">
-          <button mat-menu-item disabled>
-            <span class="material-icons mr-2">person</span>
-            Profile
           </button>
-          <button mat-menu-item disabled>
-            <span class="material-icons mr-2">settings</span>
-            Settings
-          </button>
-          <hr class="my-1" style="border-color: var(--color-border)" />
-          <button mat-menu-item (click)="auth.logout()">
-            <span class="material-icons mr-2 text-red-500">logout</span>
-            <span class="text-red-500">Logout</span>
-          </button>
-        </mat-menu>
+
+          @if (menuOpen()) {
+            <div class="dropdown-menu mt-1">
+              <button disabled>
+                <span class="material-icons text-lg">person</span>
+                Profile
+              </button>
+              <button disabled>
+                <span class="material-icons text-lg">settings</span>
+                Settings
+              </button>
+              <hr />
+              <button (click)="auth.logout(); menuOpen.set(false)">
+                <span class="material-icons text-lg text-red-500">logout</span>
+                <span class="text-red-500">Logout</span>
+              </button>
+            </div>
+          }
+        </div>
       </div>
     </header>
   `,
@@ -84,6 +86,15 @@ import { MatButtonModule } from '@angular/material/button';
 export class TopbarComponent {
   readonly auth = inject(AuthService);
   readonly theme = inject(ThemeService);
+  readonly menuOpen = signal(false);
+  private readonly elRef = inject(ElementRef);
+
+  @HostListener('document:click', ['$event'])
+  onClick(event: Event): void {
+    if (!this.elRef.nativeElement.contains(event.target)) {
+      this.menuOpen.set(false);
+    }
+  }
 
   get userName(): string {
     const user = this.auth.user();
