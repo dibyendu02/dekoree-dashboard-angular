@@ -17,7 +17,7 @@ import { TopbarComponent } from './topbar/topbar.component';
 
       <div
         class="flex-1 flex flex-col overflow-hidden transition-all duration-300"
-        [ngClass]="sidebarCollapsed() ? 'ml-[72px]' : 'ml-[260px]'"
+        [ngClass]="sidebarCollapsed() ? 'ml-[76px]' : 'ml-[264px]'"
       >
         <app-topbar />
         <main class="flex-1 overflow-y-auto">

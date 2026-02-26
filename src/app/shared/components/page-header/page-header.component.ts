@@ -4,13 +4,13 @@ import { Component, input } from '@angular/core';
   selector: 'app-page-header',
   standalone: true,
   template: `
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-7">
       <div>
-        <h1 class="text-2xl font-bold" style="color: var(--color-text)">
+        <h1 class="text-xl font-bold tracking-tight" style="color: var(--color-text)">
           {{ title() }}
         </h1>
         @if (subtitle()) {
-          <p class="text-sm mt-1" style="color: var(--color-text-secondary)">
+          <p class="text-[13px] mt-0.5 font-medium" style="color: var(--color-text-muted)">
             {{ subtitle() }}
           </p>
         }

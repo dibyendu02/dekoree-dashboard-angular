@@ -8,18 +8,25 @@ import { ThemeService } from '../../core/services/theme.service';
   imports: [],
   template: `
     <header
-      class="h-16 flex items-center justify-between px-6 border-b sticky top-0 z-20"
+      class="h-16 flex items-center justify-between px-7 border-b sticky top-0 z-20"
       style="background: var(--color-surface); border-color: var(--color-border)"
     >
       <!-- Left -->
-      <div class="flex items-center gap-4">
-        <h2 class="text-sm font-medium" style="color: var(--color-text-secondary)">
-          Admin Dashboard
-        </h2>
+      <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2">
+          <span class="material-icons text-lg" style="color: var(--color-primary)">eco</span>
+          <h2 class="text-sm font-semibold" style="color: var(--color-text)">
+            Plant Admin
+          </h2>
+        </div>
+        <span class="text-xs font-medium px-2 py-0.5 rounded-full"
+              style="background: rgba(46,125,50,0.08); color: var(--color-primary)">
+          v2.0
+        </span>
       </div>
 
       <!-- Right -->
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-1.5">
         <!-- Theme Toggle -->
         <button
           class="btn-icon"
@@ -32,31 +39,41 @@ import { ThemeService } from '../../core/services/theme.service';
         </button>
 
         <!-- Notifications -->
-        <button class="btn-icon" title="Notifications">
+        <button class="btn-icon relative" title="Notifications">
           <span class="material-icons text-xl">notifications_none</span>
+          <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
+                style="background: #F9A825"></span>
         </button>
 
+        <!-- Divider -->
+        <div class="w-px h-8 mx-2" style="background: var(--color-border)"></div>
+
         <!-- User Menu -->
-        <div class="relative ml-2">
+        <div class="relative">
           <button
-            class="flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors"
+            class="flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl transition-all duration-200"
             style="background: transparent"
             onmouseover="this.style.background='var(--color-surface-hover)'"
             onmouseout="this.style.background='transparent'"
             (click)="menuOpen.set(!menuOpen()); $event.stopPropagation()"
           >
             <div
-              class="w-8 h-8 rounded-full flex items-center justify-center"
-              style="background: var(--color-primary-light); opacity: 0.15"
+              class="w-8 h-8 rounded-lg flex items-center justify-center"
+              style="background: linear-gradient(135deg, #A5D6A7, #4CAF50)"
             >
-              <span class="text-sm font-semibold" style="color: var(--color-primary)">
+              <span class="text-xs font-bold text-white">
                 {{ userInitial }}
               </span>
             </div>
-            <span class="text-sm font-medium hidden sm:inline" style="color: var(--color-text)">
-              {{ userName }}
-            </span>
-            <span class="material-icons text-base" style="color: var(--color-text-muted)">
+            <div class="hidden sm:flex flex-col items-start">
+              <span class="text-[13px] font-medium leading-tight" style="color: var(--color-text)">
+                {{ userName }}
+              </span>
+              <span class="text-[11px] leading-tight" style="color: var(--color-text-muted)">
+                Administrator
+              </span>
+            </div>
+            <span class="material-icons text-sm" style="color: var(--color-text-muted)">
               expand_more
             </span>
           </button>
@@ -81,6 +98,11 @@ import { ThemeService } from '../../core/services/theme.service';
         </div>
       </div>
     </header>
+  `,
+  styles: `
+    :host {
+      display: contents;
+    }
   `,
 })
 export class TopbarComponent {
