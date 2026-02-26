@@ -62,7 +62,10 @@ type TabType = 'categories' | 'colors' | 'types';
           <h4 class="text-sm font-semibold mb-3" style="color: var(--color-text)">
             Add {{ getTabLabel() }}
           </h4>
-          <div class="flex gap-4 items-end">
+          <div
+            class="gap-4"
+            [class]="activeTab() === 'categories' ? 'flex flex-col items-stretch' : 'flex items-end'"
+          >
             <div class="form-field flex-1">
               <label>Name</label>
               <input
@@ -90,7 +93,7 @@ type TabType = 'categories' | 'colors' | 'types';
             }
 
             @if (activeTab() === 'categories') {
-              <div class="flex-1">
+              <div class="w-full">
                 <app-image-upload
                   hint="Category image"
                   (filesChange)="onImageChange($event)"
@@ -100,6 +103,7 @@ type TabType = 'categories' | 'colors' | 'types';
 
             <button
               class="btn btn-primary h-[42px]"
+              [class.self-start]="activeTab() === 'categories'"
               [disabled]="saving() || !newName.trim()"
               (click)="addAttribute()"
             >
