@@ -1,0 +1,253 @@
+import { Component, inject, signal } from '@angular/core';
+import { TitleCasePipe } from '@angular/common';
+import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatButtonModule } from '@angular/material/button';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { StatusBadgeComponent } from '../../shared/components/status-badge/status-badge.component';
+import { CurrencyInrPipe } from '../../shared/pipes/currency-inr.pipe';
+import { RelativeTimePipe } from '../../shared/pipes/relative-time.pipe';
+import { OrderService } from '../../core/services/order.service';
+import { ToastService } from '../../core/services/toast.service';
+import { Order, OrderStatus, ShipmentRequest } from '../../core/models';
+
+@Component({
+  selector: 'app-order-detail',
+  standalone: true,
+  imports: [
+    ReactiveFormsModule,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatButtonModule,
+    MatProgressSpinnerModule,
+    TitleCasePipe,
+    StatusBadgeComponent,
+    CurrencyInrPipe,
+    RelativeTimePipe,
+  ],
+  template: `
+    <h2 mat-dialog-title class="!text-lg !font-semibold" style="color: var(--color-text)">
+      Order #{{ order.orderNumber ?? order._id.slice(-6) }}
+    </h2>
+
+    <mat-dialog-content class="!max-h-[70vh]">
+      <!-- Status & Basic Info -->
+      <div class="flex items-center gap-3 mb-6">
+        <app-status-badge [status]="order.status ?? 'pending'" />
+        <span class="text-sm" style="color: var(--color-text-muted)">
+          {{ order.createdAt | relativeTime }}
+        </span>
+      </div>
+
+      <!-- Customer Info -->
+      <div class="card p-4 mb-4">
+        <h4 class="text-sm font-semibold mb-3 flex items-center gap-2" style="color: var(--color-text)">
+          <span class="material-icons text-lg">person</span> Customer
+        </h4>
+        @if (isUserObject()) {
+          <div class="grid grid-cols-2 gap-2 text-sm">
+            <div>
+              <span style="color: var(--color-text-muted)">Name:</span>
+              <span class="ml-1 font-medium" style="color: var(--color-text)">
+                {{ userObj.firstName }} {{ userObj.lastName }}
+              </span>
+            </div>
+            <div>
+              <span style="color: var(--color-text-muted)">Email:</span>
+              <span class="ml-1" style="color: var(--color-text-secondary)">{{ userObj.email }}</span>
+            </div>
+            <div>
+              <span style="color: var(--color-text-muted)">Phone:</span>
+              <span class="ml-1" style="color: var(--color-text-secondary)">{{ userObj.phone ?? '-' }}</span>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Order Items -->
+      <div class="card p-4 mb-4">
+        <h4 class="text-sm font-semibold mb-3 flex items-center gap-2" style="color: var(--color-text)">
+          <span class="material-icons text-lg">shopping_bag</span> Items
+        </h4>
+        @for (item of order.products ?? []; track $index) {
+          <div class="flex items-center gap-3 py-2 border-b last:border-0" style="border-color: var(--color-border)">
+            @if (item.image) {
+              <img [src]="item.image" class="w-10 h-10 rounded-lg object-cover" />
+            }
+            <div class="flex-1">
+              <p class="text-sm font-medium" style="color: var(--color-text)">{{ item.name ?? 'Product' }}</p>
+              <p class="text-xs" style="color: var(--color-text-muted)">Qty: {{ item.quantity }}</p>
+            </div>
+            <span class="text-sm font-semibold" style="color: var(--color-text)">{{ item.price | currencyInr }}</span>
+          </div>
+        }
+        <div class="flex justify-between items-center pt-3 mt-2 border-t" style="border-color: var(--color-border)">
+          <span class="text-sm font-semibold" style="color: var(--color-text)">Total</span>
+          <span class="text-lg font-bold text-indigo-600 dark:text-indigo-400">{{ order.totalAmount | currencyInr }}</span>
+        </div>
+      </div>
+
+      <!-- Payment & Shipping -->
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div class="card p-4">
+          <h4 class="text-sm font-semibold mb-2" style="color: var(--color-text)">Payment</h4>
+          <p class="text-sm" style="color: var(--color-text-secondary)">{{ order.paymentMethod ?? '-' }}</p>
+          @if (order.paymentStatus) {
+            <app-status-badge [status]="order.paymentStatus" class="mt-1" />
+          }
+        </div>
+        <div class="card p-4">
+          <h4 class="text-sm font-semibold mb-2" style="color: var(--color-text)">Shipping</h4>
+          @if (order.shippingAddress) {
+            <p class="text-xs" style="color: var(--color-text-secondary)">
+              {{ order.shippingAddress.street }}, {{ order.shippingAddress.city }},
+              {{ order.shippingAddress.state }} {{ order.shippingAddress.pincode }}
+            </p>
+          } @else {
+            <p class="text-xs" style="color: var(--color-text-muted)">No address</p>
+          }
+        </div>
+      </div>
+
+      <!-- Update Status -->
+      @if (!['delivered', 'cancelled', 'returned'].includes(order.status ?? '')) {
+        <div class="card p-4 mb-4">
+          <h4 class="text-sm font-semibold mb-3" style="color: var(--color-text)">Update Status</h4>
+          <div class="flex gap-3">
+            <mat-form-field appearance="outline" class="flex-1">
+              <mat-label>New Status</mat-label>
+              <mat-select [(value)]="newStatus">
+                @for (s of statuses; track s) {
+                  <mat-option [value]="s">{{ s.replace('_', ' ') | titlecase }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <button mat-flat-button color="primary" [disabled]="updating()" (click)="updateStatus()" class="!h-14">
+              @if (updating()) {
+                <mat-spinner diameter="18"></mat-spinner>
+              } @else {
+                Update
+              }
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- Create Shipment -->
+      @if (order.status === 'processing' || order.status === 'pending') {
+        <div class="card p-4">
+          <h4 class="text-sm font-semibold mb-3" style="color: var(--color-text)">Create Shipment</h4>
+          <form [formGroup]="shipmentForm" class="grid grid-cols-2 gap-3">
+            <mat-form-field appearance="outline">
+              <mat-label>Length (cm)</mat-label>
+              <input matInput type="number" formControlName="length" />
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Width (cm)</mat-label>
+              <input matInput type="number" formControlName="width" />
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Height (cm)</mat-label>
+              <input matInput type="number" formControlName="height" />
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Weight (g)</mat-label>
+              <input matInput type="number" formControlName="weight" />
+            </mat-form-field>
+          </form>
+          <button
+            mat-flat-button
+            color="primary"
+            [disabled]="creatingShipment() || shipmentForm.invalid"
+            (click)="createShipment()"
+            class="mt-2"
+          >
+            @if (creatingShipment()) {
+              <mat-spinner diameter="18" class="inline-block mr-2"></mat-spinner>
+            }
+            Create Shipment
+          </button>
+        </div>
+      }
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end" class="!pb-4 !pr-6">
+      <button mat-button (click)="dialogRef.close(changed())">Close</button>
+    </mat-dialog-actions>
+  `,
+})
+export class OrderDetailComponent {
+  private readonly fb = inject(FormBuilder);
+  private readonly orderService = inject(OrderService);
+  private readonly toast = inject(ToastService);
+  readonly dialogRef = inject(MatDialogRef<OrderDetailComponent>);
+  private readonly data = inject<{ order: Order }>(MAT_DIALOG_DATA);
+
+  readonly order = this.data.order;
+  readonly updating = signal(false);
+  readonly creatingShipment = signal(false);
+  readonly changed = signal(false);
+
+  newStatus: string = this.order.status ?? 'processing';
+  readonly statuses: OrderStatus[] = ['pending', 'processing', 'shipped', 'out_for_delivery', 'delivered', 'cancelled'];
+
+  readonly shipmentForm = this.fb.group({
+    length: [10, [Validators.required, Validators.min(1)]],
+    width: [10, [Validators.required, Validators.min(1)]],
+    height: [10, [Validators.required, Validators.min(1)]],
+    weight: [500, [Validators.required, Validators.min(1)]],
+  });
+
+  isUserObject(): boolean {
+    return !!this.order.user && typeof this.order.user !== 'string';
+  }
+
+  get userObj() {
+    return this.order.user as import('../../core/models').User;
+  }
+
+  updateStatus(): void {
+    if (this.newStatus === this.order.status) return;
+    this.updating.set(true);
+    this.orderService.updateOrder(this.order._id, { status: this.newStatus as OrderStatus }).subscribe({
+      next: () => {
+        this.order.status = this.newStatus as OrderStatus;
+        this.changed.set(true);
+        this.toast.success('Order status updated');
+        this.updating.set(false);
+      },
+      error: () => {
+        this.toast.error('Failed to update status');
+        this.updating.set(false);
+      },
+    });
+  }
+
+  createShipment(): void {
+    if (this.shipmentForm.invalid) return;
+    this.creatingShipment.set(true);
+    const raw = this.shipmentForm.getRawValue();
+    const shipment: ShipmentRequest = {
+      length: raw.length ?? 10,
+      width: raw.width ?? 10,
+      height: raw.height ?? 10,
+      weight: raw.weight ?? 500,
+    };
+    this.orderService.createShipment(this.order._id, shipment).subscribe({
+      next: () => {
+        this.changed.set(true);
+        this.toast.success('Shipment created');
+        this.creatingShipment.set(false);
+      },
+      error: () => {
+        this.toast.error('Failed to create shipment');
+        this.creatingShipment.set(false);
+      },
+    });
+  }
+}
