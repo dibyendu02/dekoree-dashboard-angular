@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { authGuard, loginGuard } from './core/auth/auth.guard';
 import { LayoutComponent } from './layout/layout.component';
 import { ChatContext } from './core/models/chat-context.model';
+import { dashboardChatContextResolver } from './features/dashboard/dashboard.context-resolver';
 
 // ─── Chat Context definitions ──────────────────────────────────────
 // Each route declares its context via `data.chatContext`.
@@ -32,16 +33,7 @@ export const routes: Routes = [
           import('./features/dashboard/dashboard.component').then(
             (m) => m.DashboardComponent,
           ),
-        data: {
-          chatContext: {
-            page: 'dashboard',
-            breadcrumbs: ['Dashboard'],
-            metadata: {
-              description: 'Analytics and KPI overview',
-              features: ['revenue chart', 'order trends', 'top products', 'recent orders'],
-            },
-          } satisfies ChatContext,
-        },
+        resolve: { chatContext: dashboardChatContextResolver },
       },
 
       {
