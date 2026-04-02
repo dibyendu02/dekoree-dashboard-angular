@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { SearchInputComponent } from '../../shared/components/search-input/search-input.component';
@@ -8,6 +8,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/componen
 import { CurrencyInrPipe } from '../../shared/pipes/currency-inr.pipe';
 import { RelativeTimePipe } from '../../shared/pipes/relative-time.pipe';
 import { UserService } from '../../core/services/user.service';
+import { ChatContextService } from '../../core/services/chat-context.service';
 import { ToastService } from '../../core/services/toast.service';
 import { DialogService } from '../../shared/services/dialog.service';
 import { User } from '../../core/models';
@@ -172,7 +173,8 @@ import { UserDetailComponent } from './user-detail.component';
     }
   `,
 })
-export class UserListComponent implements OnInit {
+export class UserListComponent implements OnInit, OnDestroy {
+  private readonly chatContext = inject(ChatContextService);
   private readonly userService = inject(UserService);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(DialogService);
@@ -188,7 +190,21 @@ export class UserListComponent implements OnInit {
   readonly pageSize = signal(20);
   readonly openMenuId = signal<string | null>(null);
 
-  ngOnInit(): void { this.loadUsers(); }
+  ngOnInit(): void {
+    this.chatContext.set({
+      page: 'users',
+      breadcrumbs: ['Users'],
+      metadata: {
+        description: 'Customer accounts and user management',
+        features: ['user list', 'account status', 'roles'],
+      },
+    });
+    this.loadUsers();
+  }
+
+  ngOnDestroy(): void {
+    this.chatContext.clear();
+  }
 
   onSearch(term: string): void {
     this.searchTerm.set(term.trim().toLowerCase());

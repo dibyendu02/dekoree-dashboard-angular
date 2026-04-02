@@ -12,7 +12,6 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
-import { toSignal } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs/operators';
 import { ChatContextService } from '../../core/services/chat-context.service';
 import { ChatApiService } from '../../core/services/chat-api.service';
@@ -53,9 +52,7 @@ export class ChatSidebarComponent implements OnChanges {
   readonly loading = signal(false);
 
   /** Reactive snapshot of the current page context. */
-  readonly context = toSignal(this.chatContextService.getContext(), {
-    initialValue: null,
-  });
+  readonly context = this.chatContextService.get();
 
   inputText = '';
 

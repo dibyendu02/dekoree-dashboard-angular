@@ -1,27 +1,26 @@
-import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { Injectable, Signal, signal } from '@angular/core';
 import { ChatContext } from '../models/chat-context.model';
 
 /**
  * Single source of truth for the current page context.
  *
  * Flow:
- *   Route resolvers / LayoutComponent → setContext()
- *   ChatSidebarComponent              → getContext() / getSnapshot()
+ *   Routed page components → set()
+ *   ChatSidebarComponent   → get() / getSnapshot()
  *   Route transitions                 → clear()
  */
 @Injectable({ providedIn: 'root' })
 export class ChatContextService {
-  private readonly _context$ = new BehaviorSubject<ChatContext | null>(null);
+  private readonly contextSignal = signal<ChatContext | null>(null);
 
-  /** Replace the current context.  Called by LayoutComponent on NavigationEnd. */
-  setContext(ctx: ChatContext): void {
-    this._context$.next(ctx);
+  /** Replace the current context. Called by page components. */
+  set(ctx: ChatContext): void {
+    this.contextSignal.set(ctx);
   }
 
-  /** Observable stream — subscribe in components that react to context changes. */
-  getContext(): Observable<ChatContext | null> {
-    return this._context$.asObservable();
+  /** Reactive signal for components that read context directly. */
+  get(): Signal<ChatContext | null> {
+    return this.contextSignal.asReadonly();
   }
 
   /**
@@ -29,11 +28,11 @@ export class ChatContextService {
    * (e.g. just before sending a chat request).
    */
   getSnapshot(): ChatContext | null {
-    return this._context$.getValue();
+    return this.contextSignal();
   }
 
   /** Reset when leaving authenticated area or when a route has no context. */
   clear(): void {
-    this._context$.next(null);
+    this.contextSignal.set(null);
   }
 }

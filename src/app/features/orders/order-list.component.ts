@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { DatePipe, TitleCasePipe } from '@angular/common';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { SearchInputComponent } from '../../shared/components/search-input/search-input.component';
@@ -9,6 +9,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/componen
 import { CurrencyInrPipe } from '../../shared/pipes/currency-inr.pipe';
 import { RelativeTimePipe } from '../../shared/pipes/relative-time.pipe';
 import { OrderService } from '../../core/services/order.service';
+import { ChatContextService } from '../../core/services/chat-context.service';
 import { ToastService } from '../../core/services/toast.service';
 import { DialogService } from '../../shared/services/dialog.service';
 import { Order, OrderStatus } from '../../core/models';
@@ -184,7 +185,8 @@ import { OrderDetailComponent } from './order-detail.component';
     }
   `,
 })
-export class OrderListComponent implements OnInit {
+export class OrderListComponent implements OnInit, OnDestroy {
+  private readonly chatContext = inject(ChatContextService);
   private readonly orderService = inject(OrderService);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(DialogService);
@@ -204,7 +206,19 @@ export class OrderListComponent implements OnInit {
   readonly filteredOrders = signal<Order[]>([]);
 
   ngOnInit(): void {
+    this.chatContext.set({
+      page: 'orders',
+      breadcrumbs: ['Orders'],
+      metadata: {
+        description: 'Customer order management and fulfilment tracking',
+        features: ['order list', 'status filters', 'payment status', 'fulfilment'],
+      },
+    });
     this.loadOrders();
+  }
+
+  ngOnDestroy(): void {
+    this.chatContext.clear();
   }
 
   getCustomerName(order: Order): string {

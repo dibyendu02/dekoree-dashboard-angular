@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { TitleCasePipe } from '@angular/common';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { SearchInputComponent } from '../../shared/components/search-input/search-input.component';
@@ -8,6 +8,7 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { CurrencyInrPipe } from '../../shared/pipes/currency-inr.pipe';
 import { ProductService } from '../../core/services/product.service';
+import { ChatContextService } from '../../core/services/chat-context.service';
 import { ToastService } from '../../core/services/toast.service';
 import { DialogService } from '../../shared/services/dialog.service';
 import { Product } from '../../core/models';
@@ -212,7 +213,8 @@ import { ProductDetailComponent } from './product-detail.component';
     }
   `,
 })
-export class ProductListComponent implements OnInit {
+export class ProductListComponent implements OnInit, OnDestroy {
+  private readonly chatContext = inject(ChatContextService);
   private readonly productService = inject(ProductService);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(DialogService);
@@ -230,7 +232,21 @@ export class ProductListComponent implements OnInit {
   readonly pageSize = signal(10);
   readonly openMenuId = signal<string | null>(null);
 
-  ngOnInit(): void { this.loadProducts(); }
+  ngOnInit(): void {
+    this.chatContext.set({
+      page: 'products',
+      breadcrumbs: ['Products'],
+      metadata: {
+        description: 'Product catalogue with inventory management',
+        features: ['product list', 'stock levels', 'categories', 'filters'],
+      },
+    });
+    this.loadProducts();
+  }
+
+  ngOnDestroy(): void {
+    this.chatContext.clear();
+  }
 
   onSearch(term: string): void { this.searchTerm.set(term.trim().toLowerCase()); this.applyFilters(); }
   onCategoryFilter(cat: string): void { this.categoryFilter.set(cat); this.applyFilters(); }

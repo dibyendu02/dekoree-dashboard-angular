@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { DecimalPipe, DatePipe } from '@angular/common';
 import { BaseChartDirective } from 'ng2-charts';
 import { ChartConfiguration, ChartData } from 'chart.js';
@@ -9,6 +9,8 @@ import { SkeletonLoaderComponent } from '../../shared/components/skeleton-loader
 import { CurrencyInrPipe } from '../../shared/pipes/currency-inr.pipe';
 import { RelativeTimePipe } from '../../shared/pipes/relative-time.pipe';
 import { AnalyticsService } from '../../core/services/analytics.service';
+import { ChatContext } from '../../core/models/chat-context.model';
+import { ChatContextService } from '../../core/services/chat-context.service';
 import { ToastService } from '../../core/services/toast.service';
 import { DashboardStats, Order, Product } from '../../core/models';
 
@@ -296,8 +298,9 @@ const MONTHLY_REVENUE = [
     }
   `,
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
   private readonly analyticsService = inject(AnalyticsService);
+  private readonly chatContext = inject(ChatContextService);
   private readonly toast = inject(ToastService);
 
   readonly loading = signal(true);
@@ -411,11 +414,17 @@ export class DashboardComponent implements OnInit {
   };
 
   ngOnInit(): void {
+    this.syncChatContext();
     this.loadDashboard();
+  }
+
+  ngOnDestroy(): void {
+    this.chatContext.clear();
   }
 
   onDateRangeChange(range: string): void {
     this.dateRange.set(range);
+    this.syncChatContext();
     this.loadDashboard();
   }
 
@@ -432,6 +441,7 @@ export class DashboardComponent implements OnInit {
         this.applyData(MOCK_STATS);
         this.recentOrders.set(MOCK_ORDERS);
         this.topProducts.set(MOCK_TOP_PRODUCTS);
+        this.syncChatContext(MOCK_STATS, MOCK_TOP_PRODUCTS);
         this.loading.set(false);
       },
     });
@@ -450,6 +460,36 @@ export class DashboardComponent implements OnInit {
       data.topProducts?.length ? data.topProducts : MOCK_TOP_PRODUCTS
     );
     this.updateCharts(stats);
+    this.syncChatContext(stats, this.topProducts());
+  }
+
+  private syncChatContext(
+    stats: DashboardStats | null = this.stats(),
+    topProducts: Product[] = this.topProducts(),
+  ): void {
+    this.chatContext.set({
+      page: 'dashboard',
+      breadcrumbs: ['Dashboard'],
+      metadata: {
+        description: 'Analytics and KPI overview',
+        selectedDateRangeDays: Number(this.dateRange()),
+        totalRevenue: stats?.totalRevenue,
+        totalOrders: stats?.totalOrders,
+        totalUsers: stats?.totalUsers,
+        totalProducts: stats?.totalProducts,
+        revenueGrowth: stats?.revenueGrowth,
+        ordersGrowth: stats?.ordersGrowth,
+        averageOrderValue: stats?.averageOrderValue,
+        pendingOrders: stats?.pendingOrders,
+        completedOrders: stats?.completedOrders,
+        conversionRate: stats?.conversionRate,
+        topProducts: topProducts.slice(0, 5).map((product) => ({
+          name: product.name,
+          price: product.price,
+          stock: product.stock,
+        })),
+      },
+    } satisfies ChatContext);
   }
 
   private pickNonZero(data: DashboardStats): Partial<DashboardStats> {

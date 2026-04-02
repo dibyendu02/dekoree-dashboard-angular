@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { StatusBadgeComponent } from '../../shared/components/status-badge/status-badge.component';
@@ -6,6 +6,7 @@ import { SkeletonLoaderComponent } from '../../shared/components/skeleton-loader
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { BannerService } from '../../core/services/banner.service';
+import { ChatContextService } from '../../core/services/chat-context.service';
 import { ToastService } from '../../core/services/toast.service';
 import { DialogService } from '../../shared/services/dialog.service';
 import { Banner } from '../../core/models';
@@ -104,7 +105,8 @@ import { BannerFormComponent } from './banner-form.component';
     }
   `,
 })
-export class BannerListComponent implements OnInit {
+export class BannerListComponent implements OnInit, OnDestroy {
+  private readonly chatContext = inject(ChatContextService);
   private readonly bannerService = inject(BannerService);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(DialogService);
@@ -113,7 +115,19 @@ export class BannerListComponent implements OnInit {
   readonly banners = signal<Banner[]>([]);
 
   ngOnInit(): void {
+    this.chatContext.set({
+      page: 'banners',
+      breadcrumbs: ['Banners'],
+      metadata: {
+        description: 'Promotional banner management',
+        features: ['banner list', 'active banners', 'image assets'],
+      },
+    });
     this.loadBanners();
+  }
+
+  ngOnDestroy(): void {
+    this.chatContext.clear();
   }
 
   openForm(banner?: Banner): void {

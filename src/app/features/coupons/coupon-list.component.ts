@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { DatePipe, TitleCasePipe, PercentPipe } from '@angular/common';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { SearchInputComponent } from '../../shared/components/search-input/search-input.component';
@@ -8,6 +8,7 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { CurrencyInrPipe } from '../../shared/pipes/currency-inr.pipe';
 import { CouponService } from '../../core/services/coupon.service';
+import { ChatContextService } from '../../core/services/chat-context.service';
 import { ToastService } from '../../core/services/toast.service';
 import { DialogService } from '../../shared/services/dialog.service';
 import { Coupon } from '../../core/models';
@@ -187,7 +188,8 @@ import { CouponFormComponent } from './coupon-form.component';
     }
   `,
 })
-export class CouponListComponent implements OnInit {
+export class CouponListComponent implements OnInit, OnDestroy {
+  private readonly chatContext = inject(ChatContextService);
   private readonly couponService = inject(CouponService);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(DialogService);
@@ -203,7 +205,21 @@ export class CouponListComponent implements OnInit {
   readonly pageSize = signal(10);
   readonly openMenuId = signal<string | null>(null);
 
-  ngOnInit(): void { this.loadCoupons(); }
+  ngOnInit(): void {
+    this.chatContext.set({
+      page: 'coupons',
+      breadcrumbs: ['Coupons'],
+      metadata: {
+        description: 'Discount coupon management',
+        features: ['coupon list', 'discount types', 'validity', 'usage limits'],
+      },
+    });
+    this.loadCoupons();
+  }
+
+  ngOnDestroy(): void {
+    this.chatContext.clear();
+  }
 
   onSearch(term: string): void {
     this.searchTerm.set(term.trim().toLowerCase());

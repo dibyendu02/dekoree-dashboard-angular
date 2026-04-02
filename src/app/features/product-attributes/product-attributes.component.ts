@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { SkeletonLoaderComponent } from '../../shared/components/skeleton-loader/skeleton-loader.component';
@@ -6,6 +6,7 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { ImageUploadComponent } from '../../shared/components/image-upload/image-upload.component';
 import { ProductAttributesService } from '../../core/services/product-attributes.service';
+import { ChatContextService } from '../../core/services/chat-context.service';
 import { ToastService } from '../../core/services/toast.service';
 import { DialogService } from '../../shared/services/dialog.service';
 
@@ -165,8 +166,9 @@ type TabType = 'categories' | 'colors' | 'types';
     </div>
   `,
 })
-export class ProductAttributesComponent implements OnInit {
+export class ProductAttributesComponent implements OnInit, OnDestroy {
   private readonly attrService = inject(ProductAttributesService);
+  private readonly chatContext = inject(ChatContextService);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(DialogService);
 
@@ -180,13 +182,19 @@ export class ProductAttributesComponent implements OnInit {
   private imageFile: File | null = null;
 
   ngOnInit(): void {
+    this.syncChatContext();
     this.loadItems();
     // Re-load when tab changes
     const originalSet = this.activeTab.set.bind(this.activeTab);
     this.activeTab.set = (value: TabType) => {
       originalSet(value);
+      this.syncChatContext();
       this.loadItems();
     };
+  }
+
+  ngOnDestroy(): void {
+    this.chatContext.clear();
   }
 
   getTabLabel(): string {
@@ -200,6 +208,18 @@ export class ProductAttributesComponent implements OnInit {
 
   onImageChange(files: File[]): void {
     this.imageFile = files[0] ?? null;
+  }
+
+  private syncChatContext(): void {
+    this.chatContext.set({
+      page: 'product-attributes',
+      breadcrumbs: ['Product Attributes'],
+      metadata: {
+        description: 'Product taxonomy: colours, types, plant types, categories',
+        features: ['colours', 'product types', 'plant types', 'categories'],
+        activeTab: this.activeTab(),
+      },
+    });
   }
 
   addAttribute(): void {

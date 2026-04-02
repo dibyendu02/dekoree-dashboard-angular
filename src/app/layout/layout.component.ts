@@ -1,14 +1,10 @@
-import { Component, inject, signal } from '@angular/core';
-import { RouterOutlet, Router, ActivatedRoute, NavigationEnd } from '@angular/router';
+import { Component, signal } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
 import { NgClass } from '@angular/common';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { filter } from 'rxjs/operators';
 
 import { SidebarComponent } from './sidebar/sidebar.component';
 import { TopbarComponent } from './topbar/topbar.component';
 import { ChatSidebarComponent } from './chat-sidebar/chat-sidebar.component';
-import { ChatContextService } from '../core/services/chat-context.service';
-import { ChatContext } from '../core/models/chat-context.model';
 
 @Component({
   selector: 'app-layout',
@@ -133,47 +129,4 @@ export class LayoutComponent {
   // ── Chat sidebar state ───────────────────────────────────────
   readonly chatOpen = signal(false);
 
-  // ── Services ─────────────────────────────────────────────────
-  private readonly router = inject(Router);
-  private readonly activatedRoute = inject(ActivatedRoute);
-  private readonly chatContextService = inject(ChatContextService);
-
-  constructor() {
-    this.syncContextOnNavigation();
-  }
-
-  // ─────────────────────────────────────────────────────────────
-  // Route → Context sync
-  //
-  // On every NavigationEnd we walk to the deepest activated child
-  // route and read `data.chatContext` (set in app.routes.ts).
-  // If a route uses a resolver instead, the resolved value lands
-  // in the same `data` map — so this code handles both cases.
-  // ─────────────────────────────────────────────────────────────
-
-  private syncContextOnNavigation(): void {
-    this.router.events
-      .pipe(
-        filter((e): e is NavigationEnd => e instanceof NavigationEnd),
-        takeUntilDestroyed(),
-      )
-      .subscribe(() => {
-        const ctx = this.extractDeepestChatContext();
-        if (ctx) {
-          console.log('[ChatContext] Route context →', ctx);
-          this.chatContextService.setContext(ctx);
-        } else {
-          this.chatContextService.clear();
-        }
-      });
-  }
-
-  private extractDeepestChatContext(): ChatContext | null {
-    let route = this.activatedRoute.firstChild;
-    // Walk to the deepest activated child route.
-    while (route?.firstChild) {
-      route = route.firstChild;
-    }
-    return (route?.snapshot.data?.['chatContext'] as ChatContext) ?? null;
-  }
 }
