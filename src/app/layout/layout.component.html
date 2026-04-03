@@ -1,0 +1,40 @@
+<div class="layout-root">
+  <!-- ── Left navigation sidebar ─────────────────────── -->
+  <app-sidebar
+    [collapsed]="sidebarCollapsed()"
+    (toggleCollapse)="sidebarCollapsed.update(v => !v)"
+  />
+
+  <!-- ── Main content column ────────────────────────── -->
+  <div
+    class="content-column"
+    [ngClass]="sidebarCollapsed() ? 'ml-[76px]' : 'ml-[264px]'"
+    [style.padding-right]="chatOpen() ? '360px' : '0'"
+  >
+    <app-topbar />
+    <main class="flex-1 overflow-y-auto">
+      <div class="page-container animate-fade-in">
+        <router-outlet />
+      </div>
+    </main>
+  </div>
+
+  <!-- ── AI Chat sidebar (fixed, right) ─────────────── -->
+  <app-chat-sidebar
+    [isOpen]="chatOpen()"
+    (closed)="chatOpen.set(false)"
+  />
+
+  <!-- ── Floating chat toggle button (hidden when sidebar is open) ── -->
+  @if (!chatOpen()) {
+    <button
+      class="chat-fab"
+      (click)="chatOpen.set(true)"
+      title="Open AI Assistant"
+      aria-label="Open AI Assistant"
+    >
+      <span class="material-icons fab-icon">smart_toy</span>
+      <span class="fab-label">AI</span>
+    </button>
+  }
+</div>

@@ -1,0 +1,52 @@
+    <div class="px-6 pt-6 pb-2">
+      <h2 class="text-lg font-semibold" style="color: var(--color-text)">
+        User Details
+      </h2>
+    </div>
+    <div class="px-6 py-2 overflow-y-auto" style="max-height: 70vh">
+      <div class="flex items-center gap-4 mb-6">
+        <div class="w-16 h-16 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center">
+          <span class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+            {{ (user.firstName ?? 'U').charAt(0).toUpperCase() }}
+          </span>
+        </div>
+        <div>
+          <h3 class="text-lg font-bold" style="color: var(--color-text)">
+            {{ user.firstName }} {{ user.lastName }}
+          </h3>
+          <p class="text-sm" style="color: var(--color-text-secondary)">{{ user.email }}</p>
+          <div class="flex gap-2 mt-1">
+            @if (user.isAdmin) {
+              <app-status-badge status="Admin" variant="primary" />
+            }
+            <app-status-badge [status]="user.isActive !== false ? 'active' : 'inactive'" />
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        @for (field of infoFields; track field.label) {
+          <div class="p-3 rounded-lg" style="background: var(--color-surface-alt)">
+            <p class="text-xs font-medium uppercase mb-1" style="color: var(--color-text-muted)">{{ field.label }}</p>
+            <p class="text-sm font-semibold" style="color: var(--color-text)">{{ field.value }}</p>
+          </div>
+        }
+      </div>
+
+      @if (user.addresses?.length) {
+        <h4 class="text-sm font-semibold mt-6 mb-3" style="color: var(--color-text)">Addresses</h4>
+        @for (addr of user.addresses; track $index) {
+          <div class="p-3 rounded-lg mb-2" style="background: var(--color-surface-alt)">
+            <p class="text-sm" style="color: var(--color-text-secondary)">
+              {{ addr.street }}, {{ addr.city }}, {{ addr.state }} {{ addr.pincode }}
+            </p>
+            @if (addr.isDefault) {
+              <app-status-badge status="Default" variant="primary" class="mt-1" />
+            }
+          </div>
+        }
+      }
+    </div>
+    <div class="flex justify-end px-6 pb-5 pt-3">
+      <button class="btn btn-ghost" (click)="dialogRef.close()">Close</button>
+    </div>

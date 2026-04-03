@@ -1,0 +1,153 @@
+    <app-page-header title="Orders" subtitle="Track and manage customer orders" />
+
+    <!-- Filters -->
+    <div class="card mb-6">
+      <div class="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+        <div class="flex-1">
+          <app-search-input
+            placeholder="Search by order number..."
+            (searchChange)="onSearch($event)"
+          />
+        </div>
+        <select class="filter-select w-48" (change)="onStatusFilter($any($event.target).value)">
+          <option value="">All Statuses</option>
+          @for (status of orderStatuses; track status) {
+            <option [value]="status">{{ status | titlecase }}</option>
+          }
+        </select>
+        <select class="filter-select w-44" (change)="onPaymentFilter($any($event.target).value)">
+          <option value="">All Payments</option>
+          <option value="Online">Online</option>
+          <option value="COD">COD</option>
+        </select>
+      </div>
+    </div>
+
+    @if (loading()) {
+      <app-skeleton-loader type="table" [count]="8" />
+    } @else if (filteredOrders().length === 0 && allOrders().length === 0) {
+      <div class="card">
+        <app-empty-state
+          icon="local_shipping"
+          title="No orders found"
+          message="Orders will appear here when customers place them."
+        />
+      </div>
+    } @else {
+      <div class="card overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th class="sortable" (click)="toggleSort('orderNumber')"
+                    [class.sort-active]="sortField() === 'orderNumber'">
+                  Order #
+                  <span class="material-icons sort-icon">{{ getSortIcon('orderNumber') }}</span>
+                </th>
+                <th>Customer</th>
+                <th class="sortable" (click)="toggleSort('totalAmount')"
+                    [class.sort-active]="sortField() === 'totalAmount'">
+                  Amount
+                  <span class="material-icons sort-icon">{{ getSortIcon('totalAmount') }}</span>
+                </th>
+                <th>Status</th>
+                <th>Payment</th>
+                <th class="sortable" (click)="toggleSort('createdAt')"
+                    [class.sort-active]="sortField() === 'createdAt'">
+                  Date
+                  <span class="material-icons sort-icon">{{ getSortIcon('createdAt') }}</span>
+                </th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (order of paginatedOrders(); track order._id) {
+                <tr class="cursor-pointer" (click)="viewOrder(order)">
+                  <td>
+                    <span class="text-sm font-medium" style="color: var(--color-text)">
+                      #{{ order.orderNumber ?? order._id.slice(-6) }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="text-sm" style="color: var(--color-text-secondary)">
+                      {{ getCustomerName(order) }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="text-sm font-semibold" style="color: var(--color-text)">
+                      {{ order.totalAmount | currencyInr }}
+                    </span>
+                  </td>
+                  <td>
+                    <app-status-badge [status]="order.status ?? 'pending'" />
+                  </td>
+                  <td>
+                    <span class="text-sm" style="color: var(--color-text-secondary)">
+                      {{ order.paymentMethod ?? '-' }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="text-sm" style="color: var(--color-text-muted)">
+                      {{ order.createdAt | relativeTime }}
+                    </span>
+                  </td>
+                  <td>
+                    <div class="relative" (click)="$event.stopPropagation()">
+                      <button class="btn-icon" (click)="toggleMenu(order._id)">
+                        <span class="material-icons">more_vert</span>
+                      </button>
+                      @if (openMenuId() === order._id) {
+                        <div class="dropdown-menu">
+                          <button (click)="viewOrder(order); closeMenu()">
+                            <span class="material-icons text-lg">visibility</span> View Details
+                          </button>
+                          @if (order.status === 'pending') {
+                            <hr />
+                            <button class="text-red-500" (click)="deleteOrder(order); closeMenu()">
+                              <span class="material-icons text-lg">delete</span> Delete
+                            </button>
+                          }
+                        </div>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="7" class="text-center py-8 text-sm" style="color: var(--color-text-muted)">
+                    No matching orders
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination">
+          <div class="flex items-center gap-3">
+            <span>Rows per page:</span>
+            <select [value]="pageSize()" (change)="pageSize.set(+$any($event.target).value); currentPage.set(0)">
+              <option [value]="10">10</option>
+              <option [value]="25">25</option>
+              <option [value]="50">50</option>
+            </select>
+            <span>{{ paginationLabel() }}</span>
+          </div>
+          <div class="pagination-controls">
+            <button [disabled]="currentPage() === 0" (click)="currentPage.set(0)">
+              <span class="material-icons text-sm">first_page</span>
+            </button>
+            <button [disabled]="currentPage() === 0" (click)="currentPage.update(p => p - 1)">
+              <span class="material-icons text-sm">chevron_left</span>
+            </button>
+            <button [disabled]="currentPage() >= totalPages() - 1" (click)="currentPage.update(p => p + 1)">
+              <span class="material-icons text-sm">chevron_right</span>
+            </button>
+            <button [disabled]="currentPage() >= totalPages() - 1" (click)="currentPage.set(totalPages() - 1)">
+              <span class="material-icons text-sm">last_page</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    }

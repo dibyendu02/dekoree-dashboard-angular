@@ -1,0 +1,17 @@
+.sidebar-link {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.sidebar-link:hover {
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+:host ::ng-deep .sidebar-active {
+  background: rgba(76, 175, 80, 0.15) !important;
+  color: #a5d6a7 !important;
+}
+
+:host ::ng-deep .sidebar-active .material-icons {
+  color: #81c784 !important;
+}

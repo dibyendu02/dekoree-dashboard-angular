@@ -1,0 +1,134 @@
+    <app-page-header title="Product Attributes" subtitle="Manage categories, colors, and types" />
+
+    <div class="card overflow-hidden">
+      <!-- Custom Tabs -->
+      <div class="custom-tabs">
+        <div class="tab-list">
+          <button
+            [class.active]="activeTab() === 'categories'"
+            (click)="activeTab.set('categories')"
+          >
+            Categories
+          </button>
+          <button
+            [class.active]="activeTab() === 'colors'"
+            (click)="activeTab.set('colors')"
+          >
+            Colors
+          </button>
+          <button
+            [class.active]="activeTab() === 'types'"
+            (click)="activeTab.set('types')"
+          >
+            Product Types
+          </button>
+        </div>
+      </div>
+
+      <div class="p-6">
+        <!-- Add Form -->
+        <div class="card p-4 mb-6">
+          <h4 class="text-sm font-semibold mb-3" style="color: var(--color-text)">
+            Add {{ getTabLabel() }}
+          </h4>
+          <div
+            class="gap-4"
+            [class]="activeTab() === 'categories' ? 'flex flex-col items-stretch' : 'flex items-end'"
+          >
+            <div class="form-field flex-1">
+              <label>Name</label>
+              <input
+                [(ngModel)]="newName"
+                [placeholder]="'Enter ' + getTabLabel() + ' name'"
+              />
+            </div>
+
+            @if (activeTab() === 'colors') {
+              <div class="form-field !w-32">
+                <label>Hex Code</label>
+                <div class="flex items-center gap-2">
+                  <input
+                    type="color"
+                    [(ngModel)]="newHexCode"
+                    class="!p-0 !h-10 !w-10 !border-0 cursor-pointer"
+                  />
+                  <input
+                    [(ngModel)]="newHexCode"
+                    placeholder="#000000"
+                    class="flex-1"
+                  />
+                </div>
+              </div>
+            }
+
+            @if (activeTab() === 'categories') {
+              <div class="w-full">
+                <app-image-upload
+                  hint="Category image"
+                  (filesChange)="onImageChange($event)"
+                />
+              </div>
+            }
+
+            <button
+              class="btn btn-primary h-[42px]"
+              [class.self-start]="activeTab() === 'categories'"
+              [disabled]="saving() || !newName.trim()"
+              (click)="addAttribute()"
+            >
+              @if (saving()) {
+                <span class="spinner w-4 h-4 border-white/30 border-t-white mr-1"></span>
+              }
+              Add
+            </button>
+          </div>
+        </div>
+
+        <!-- List -->
+        @if (loading()) {
+          <app-skeleton-loader type="table" [count]="4" />
+        } @else if (items().length === 0) {
+          <app-empty-state
+            icon="label"
+            [title]="'No ' + getTabLabel() + 's'"
+            [message]="'Add your first ' + getTabLabel()"
+          />
+        } @else {
+          <div class="space-y-2">
+            @for (item of items(); track item._id) {
+              <div
+                class="flex items-center justify-between p-3 rounded-lg border transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                style="border-color: var(--color-border)"
+              >
+                <div class="flex items-center gap-3">
+                  @if (item.image) {
+                    <img [src]="item.image" class="w-10 h-10 rounded-lg object-cover" />
+                  }
+                  @if (item.hexCode) {
+                    <div
+                      class="w-8 h-8 rounded-full border"
+                      [style.background]="item.hexCode"
+                      style="border-color: var(--color-border)"
+                    ></div>
+                  }
+                  <span class="text-sm font-medium" style="color: var(--color-text)">
+                    {{ item.name }}
+                  </span>
+                  @if (item.hexCode) {
+                    <span class="text-xs font-mono" style="color: var(--color-text-muted)">
+                      {{ item.hexCode }}
+                    </span>
+                  }
+                </div>
+                <button
+                  class="btn-icon !text-red-500 hover:!bg-red-50 dark:hover:!bg-red-900/20"
+                  (click)="deleteAttribute(item)"
+                >
+                  <span class="material-icons text-lg">delete</span>
+                </button>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>

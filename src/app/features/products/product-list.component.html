@@ -1,0 +1,183 @@
+    <app-page-header title="Products" subtitle="Manage your product catalog">
+      <button class="btn btn-primary" (click)="openForm()">
+        <span class="material-icons text-lg">add</span> Add Product
+      </button>
+    </app-page-header>
+
+    <!-- Filters -->
+    <div class="card mb-6">
+      <div class="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+        <div class="flex-1">
+          <app-search-input placeholder="Search products..." (searchChange)="onSearch($event)" />
+        </div>
+        <select class="filter-select w-40" (change)="onCategoryFilter($any($event.target).value)">
+          <option value="">All Categories</option>
+          @for (cat of categories(); track cat) {
+            <option [value]="cat">{{ cat }}</option>
+          }
+        </select>
+        <select class="filter-select w-36" (change)="onStatusFilter($any($event.target).value)">
+          <option value="">All Status</option>
+          <option value="true">Active</option>
+          <option value="false">Inactive</option>
+        </select>
+      </div>
+    </div>
+
+    @if (loading()) {
+      <app-skeleton-loader type="table" [count]="8" />
+    } @else if (filteredProducts().length === 0 && allProducts().length === 0) {
+      <div class="card">
+        <app-empty-state
+          icon="inventory_2"
+          title="No products yet"
+          message="Start by adding your first product."
+          actionText="Add Product"
+          (action)="openForm()"
+        />
+      </div>
+    } @else {
+      <div class="card overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Image</th>
+                <th class="sortable" (click)="toggleSort('name')"
+                    [class.sort-active]="sortField() === 'name'">
+                  Name
+                  <span class="material-icons sort-icon">{{ getSortIcon('name') }}</span>
+                </th>
+                <th>Category</th>
+                <th class="sortable" (click)="toggleSort('price')"
+                    [class.sort-active]="sortField() === 'price'">
+                  Price
+                  <span class="material-icons sort-icon">{{ getSortIcon('price') }}</span>
+                </th>
+                <th class="sortable" (click)="toggleSort('stock')"
+                    [class.sort-active]="sortField() === 'stock'">
+                  Stock
+                  <span class="material-icons sort-icon">{{ getSortIcon('stock') }}</span>
+                </th>
+                <th>Active</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (product of paginatedProducts(); track product._id) {
+                <tr class="cursor-pointer" (click)="viewProduct(product)">
+                  <td>
+                    @if (product.images?.[0]) {
+                      <img [src]="product.images![0]" [alt]="product.name"
+                           class="w-12 h-12 rounded-lg object-cover border"
+                           style="border-color: var(--color-border)" />
+                    } @else {
+                      <div class="w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                        <span class="material-icons text-gray-400">image</span>
+                      </div>
+                    }
+                  </td>
+                  <td>
+                    <div>
+                      <p class="text-sm font-medium" style="color: var(--color-text)">{{ product.name }}</p>
+                      @if (product.sku) {
+                        <p class="text-xs" style="color: var(--color-text-muted)">SKU: {{ product.sku }}</p>
+                      }
+                    </div>
+                  </td>
+                  <td>
+                    @if (product.category) {
+                      <span class="chip bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                        {{ getCategoryName(product.category) }}
+                      </span>
+                    }
+                  </td>
+                  <td>
+                    <div>
+                      <span class="text-sm font-semibold" style="color: var(--color-text)">
+                        {{ product.price | currencyInr }}
+                      </span>
+                      @if (product.mrp && product.mrp > product.price) {
+                        <span class="text-xs line-through ml-1" style="color: var(--color-text-muted)">
+                          {{ product.mrp | currencyInr }}
+                        </span>
+                      }
+                    </div>
+                  </td>
+                  <td>
+                    <span class="text-sm"
+                      [class.text-red-500]="(product.stock ?? 0) < 5"
+                      [style.color]="(product.stock ?? 0) >= 5 ? 'var(--color-text-secondary)' : ''">
+                      {{ product.stock ?? 0 }}
+                    </span>
+                  </td>
+                  <td (click)="$event.stopPropagation()">
+                    <label class="toggle-switch">
+                      <input type="checkbox"
+                        [checked]="product.isActive !== false"
+                        (change)="toggleActive(product)"
+                      />
+                      <span class="toggle-track"></span>
+                    </label>
+                  </td>
+                  <td (click)="$event.stopPropagation()">
+                    <div class="relative">
+                      <button class="btn-icon" (click)="toggleMenu(product._id)">
+                        <span class="material-icons">more_vert</span>
+                      </button>
+                      @if (openMenuId() === product._id) {
+                        <div class="dropdown-menu">
+                          <button (click)="viewProduct(product); closeMenu()">
+                            <span class="material-icons text-lg">visibility</span> View
+                          </button>
+                          <button (click)="openForm(product); closeMenu()">
+                            <span class="material-icons text-lg">edit</span> Edit
+                          </button>
+                          <hr />
+                          <button class="text-red-500" (click)="deleteProduct(product); closeMenu()">
+                            <span class="material-icons text-lg">delete</span> Delete
+                          </button>
+                        </div>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="7" class="text-center py-8 text-sm" style="color: var(--color-text-muted)">
+                    No matching products
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination">
+          <div class="flex items-center gap-3">
+            <span>Rows per page:</span>
+            <select [value]="pageSize()" (change)="pageSize.set(+$any($event.target).value); currentPage.set(0)">
+              <option [value]="10">10</option>
+              <option [value]="25">25</option>
+              <option [value]="50">50</option>
+            </select>
+            <span>{{ paginationLabel() }}</span>
+          </div>
+          <div class="pagination-controls">
+            <button [disabled]="currentPage() === 0" (click)="currentPage.set(0)">
+              <span class="material-icons text-sm">first_page</span>
+            </button>
+            <button [disabled]="currentPage() === 0" (click)="currentPage.update(p => p - 1)">
+              <span class="material-icons text-sm">chevron_left</span>
+            </button>
+            <button [disabled]="currentPage() >= totalPages() - 1" (click)="currentPage.update(p => p + 1)">
+              <span class="material-icons text-sm">chevron_right</span>
+            </button>
+            <button [disabled]="currentPage() >= totalPages() - 1" (click)="currentPage.set(totalPages() - 1)">
+              <span class="material-icons text-sm">last_page</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    }
